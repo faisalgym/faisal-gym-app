@@ -56,12 +56,11 @@ async function loadModels() {
   }
 }
 
-// 4. Start Camera Stream (Back Camera Fix)
+// 4. Start Camera Stream (Back Camera Priority)
 function startVideo() {
   const video = document.getElementById('video');
   const registerVideo = document.getElementById('registerVideo');
   
-  // facingMode: "environment" forces mobile devices to use the rear (back) camera
   const constraints = { 
     video: { 
       facingMode: { exact: "environment" } 
@@ -75,7 +74,6 @@ function startVideo() {
         if (registerVideo) registerVideo.srcObject = stream;
       })
       .catch(err => {
-        // Fallback for laptops/desktops that don't have dual camera modes
         navigator.mediaDevices.getUserMedia({ video: true })
           .then(stream => {
             if (video) video.srcObject = stream;
@@ -86,7 +84,7 @@ function startVideo() {
   }
 }
 
-// 5. Auto Member ID Generator (A1, A2, A3...)
+// 5. Auto Member ID Generator
 function generateNextMemberId() {
   if (members.length === 0) return 'A1';
   const lastId = members[members.length - 1].id;
@@ -129,6 +127,7 @@ async function registerMember() {
     phone: phone,
     admissionDate: admissionDate || new Date().toISOString().split('T')[0],
     expiryDate: expiryDate,
+    extraDaysDebt: 0,
     descriptor: Array.from(detection.descriptor)
   };
 
@@ -186,11 +185,12 @@ if (videoElement) {
   });
 }
 
-// 9. Mark Attendance & Extra Days Logic
+// 9. Mark Attendance & Lifetime Extra Days Debt Logic
 function markAttendance(memberId, alertBox) {
-  const member = members.find(m => m.id === memberId);
-  if (!member) return;
-
+  const memberIndex = members.findIndex(m => m.id === memberId);
+  if (memberIndex === -1) return;
+  
+  const member = members[memberIndex];
   const todayStr = new Date().toISOString().split('T')[0];
   const alreadyLogged = attendanceLogs.some(log => log.memberId === memberId && log.date === todayStr);
 
@@ -200,11 +200,12 @@ function markAttendance(memberId, alertBox) {
   expiry.setHours(0,0,0,0);
 
   let isExpired = false;
-  let extraDays = 0;
   if (today > expiry) {
     isExpired = true;
-    const diffTime = Math.abs(today - expiry);
-    extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (!alreadyLogged) {
+      member.extraDaysDebt = (member.extraDaysDebt || 0) + 1;
+      localStorage.setItem('gym_members', JSON.stringify(members));
+    }
   }
 
   if (!alreadyLogged) {
@@ -214,17 +215,18 @@ function markAttendance(memberId, alertBox) {
       time: new Date().toLocaleTimeString(),
       date: todayStr,
       isExpired: isExpired,
-      extraDays: extraDays
+      extraDays: member.extraDaysDebt || 0
     };
     attendanceLogs.unshift(log);
     localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs));
     renderLogs();
     updateDashboardStats();
+    renderMembersList();
   }
 
   if (alertBox) {
     if (isExpired) {
-      alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! Expired ${extraDays} Extra Days Ago.`;
+      alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! ${member.extraDaysDebt || 1} Unpaid Extra Days!`;
       alertBox.className = "alert-box danger";
     } else {
       alertBox.innerText = `WELCOME: ${member.name} (${member.id}) - Attendance Marked!`;
@@ -233,7 +235,7 @@ function markAttendance(memberId, alertBox) {
   }
 }
 
-// 10. Render Member List & Interactive Actions
+// 10. Render Member List with Renewal & Forgive Controls
 function renderMembersList(filterQuery = '') {
   const listEl = document.getElementById('membersList');
   if (!listEl) return;
@@ -256,38 +258,74 @@ function renderMembersList(filterQuery = '') {
     expiry.setHours(0,0,0,0);
 
     let statusHtml = `<span style="color:var(--success); font-weight:bold;">Active</span>`;
-    let extraText = '';
+    let debtText = '';
+
+    if (m.extraDaysDebt && m.extraDaysDebt > 0) {
+      debtText = `<br><span style="color:var(--accent-red); font-size:11px; font-weight:bold;">Debt: ${m.extraDaysDebt} Extra Days</span>`;
+    }
 
     if (today > expiry) {
-      const extraDays = Math.ceil(Math.abs(today - expiry) / (1000 * 60 * 60 * 24));
       statusHtml = `<span style="color:var(--accent-red); font-weight:bold;">Expired</span>`;
-      extraText = `<br><span style="color:var(--accent-red); font-size:11px;">Overdue: ${extraDays} Extra Days</span>`;
     }
 
     const li = document.createElement('li');
     li.className = 'member-card-item';
+    li.style.display = 'flex';
+    li.style.justifySpaceBetween = 'space-between';
+    li.style.padding = '10px';
+    li.style.borderBottom = '1px solid var(--border)';
+    
     li.innerHTML = `
       <div class="member-info">
         <h4>${m.name} <span class="member-id-tag">${m.id}</span></h4>
-        <p>Phone: ${m.phone} | Expiry: ${m.expiryDate} ${extraText}</p>
+        <p>Phone: ${m.phone} | Expiry: ${m.expiryDate} ${debtText}</p>
       </div>
-      <div>
-        ${statusHtml}
-        <button onclick="deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-left:8px; cursor:pointer;">Delete</button>
+      <div style="text-align:right;">
+        ${statusHtml}<br>
+        <button onclick="renewFee('${m.id}')" style="background:var(--success); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-top:4px; cursor:pointer;">Renew Fee</button>
+        <button onclick="deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-left:4px; cursor:pointer;">Delete</button>
       </div>
     `;
     listEl.appendChild(li);
   });
 }
 
-// 11. Search Handler
+// 11. Fee Renewal & Debt Clearance Handler
+function renewFee(id) {
+  const member = members.find(m => m.id === id);
+  if (!member) return;
+
+  let message = `Renew Fee for ${member.name} (${member.id})?\n`;
+  if (member.extraDaysDebt && member.extraDaysDebt > 0) {
+    message += `\n⚠️ Unpaid Balance: ${member.extraDaysDebt} Extra Days Worked Out.\nDo you want to CHARGE or FORGIVE these extra days?`;
+  }
+
+  const choice = confirm(message + "\n\nPress OK to Clear Debt & Renew, or Cancel to keep pending.");
+  if (choice) {
+    const months = prompt("Enter number of months to extend membership (e.g., 1, 3, 6):", "1");
+    if (months && !isNaN(months)) {
+      let baseDate = new Date();
+      baseDate.setMonth(baseDate.getMonth() + parseInt(months));
+      
+      member.expiryDate = baseDate.toISOString().split('T')[0];
+      member.extraDaysDebt = 0; // Debt Cleared
+      
+      localStorage.setItem('gym_members', JSON.stringify(members));
+      alert(`Membership Renewed Successfully till ${member.expiryDate}! Extra days cleared.`);
+      renderMembersList();
+      updateDashboardStats();
+    }
+  }
+}
+
+// 12. Search Handler
 function handleSearch() {
   const searchEl = document.getElementById('memberSearch');
   const query = searchEl ? searchEl.value : '';
   renderMembersList(query);
 }
 
-// 12. Delete Member
+// 13. Delete Member
 function deleteMember(id) {
   if (confirm(`Are you sure you want to delete member ID ${id}?`)) {
     members = members.filter(m => m.id !== id);
@@ -298,7 +336,7 @@ function deleteMember(id) {
   }
 }
 
-// 13. Render Today's Attendance Logs
+// 14. Render Today's Attendance Logs
 function renderLogs() {
   const logsEl = document.getElementById('logsList');
   if (!logsEl) return;
@@ -332,7 +370,7 @@ function renderLogs() {
   });
 }
 
-// 14. Auto Daily Refresh Logic
+// 15. Auto Daily Refresh Logic
 function checkDailyReset() {
   const lastReset = localStorage.getItem('gym_last_reset');
   const todayStr = new Date().toISOString().split('T')[0];
@@ -343,7 +381,7 @@ function checkDailyReset() {
   }
 }
 
-// 15. Dashboard Quick Analytics Stats
+// 16. Dashboard Quick Analytics Stats
 function updateDashboardStats() {
   const activeCountEl = document.getElementById('totalActiveMembers');
   const todayCountEl = document.getElementById('todayAttendanceCount');
@@ -359,7 +397,7 @@ function updateDashboardStats() {
   members.forEach(m => {
     const expiry = new Date(m.expiryDate);
     expiry.setHours(0,0,0,0);
-    if (today > expiry) overdueCount++;
+    if (today > expiry || (m.extraDaysDebt && m.extraDaysDebt > 0)) overdueCount++;
   });
 
   const todayLogsCount = attendanceLogs.filter(l => l.date === todayStr).length;
