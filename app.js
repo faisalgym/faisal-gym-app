@@ -3,11 +3,35 @@ const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
 let labeledDescriptors = [];
 let faceMatcher;
 let tempDescriptor = null;
+let lastScanTime = 0; // Prevent spam sounds
 
 const statusBadge = document.getElementById('statusBadge');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const alertBox = document.getElementById('alertBox');
+
+// Audio Effects (Web Audio API)
+function playSound(type) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'success') {
+        // High Success Beep
+        osc.frequency.setValueAtTime(880, ctx.currentTime); 
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+    } else if (type === 'warning') {
+        // Low Warning Tone for Expiry
+        osc.frequency.setValueAtTime(300, ctx.currentTime); 
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+    }
+}
 
 async function loadModels() {
     try {
@@ -33,15 +57,23 @@ async function loadModels() {
     }
 }
 
+// Force Back Camera (facingMode: environment)
 async function startVideo() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: { exact: "environment" } } 
+        });
         if(video) video.srcObject = stream;
     } catch (err) {
-        console.error(err);
-        if(alertBox) {
-            alertBox.textContent = 'Camera access denied or unavailable.';
-            alertBox.className = 'alert-box';
+        // Fallback to default camera if exact back camera fails
+        try {
+            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            if(video) video.srcObject = fallbackStream;
+        } catch(e) {
+            if(alertBox) {
+                alertBox.textContent = 'Camera access denied or unavailable.';
+                alertBox.className = 'alert-box';
+            }
         }
     }
 }
@@ -132,7 +164,7 @@ async function captureSnapshot() {
 
     if(!video || !video.srcObject) {
         if(statusText) {
-            statusText.textContent = 'Camera not ready. Please refresh.';
+            statusText.textContent = 'Camera not ready.';
             statusText.style.color = '#ef4444';
         }
         return;
@@ -148,9 +180,10 @@ async function captureSnapshot() {
             statusText.textContent = 'Face Captured Successfully!';
             statusText.style.color = '#22c55e';
         }
+        playSound('success');
     } else {
         if(statusText) {
-            statusText.textContent = 'No face detected. Align face clearly in camera.';
+            statusText.textContent = 'No face detected. Align face clearly.';
             statusText.style.color = '#ef4444';
         }
     }
@@ -197,6 +230,7 @@ function recordAttendance(memberName) {
     }
 }
 
+// Live Face Scanner Loop with Sound & Fee Expiry Check
 video?.addEventListener('play', () => {
     const displaySize = { width: video.width || 320, height: video.height || 240 };
     faceapi.matchDimensions(canvas, displaySize);
@@ -211,18 +245,46 @@ video?.addEventListener('play', () => {
         const resizedDetections = faceapi.resizeResults(detections, displaySize);
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 
+        const members = getStoredMembers();
+        const todayStr = new Date().toISOString().split('T')[0];
+
         resizedDetections.forEach(detection => {
             const result = faceMatcher.findBestMatch(detection.descriptor);
             const box = detection.detection.box;
-            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
-            drawBox.draw(canvas);
 
             if (result.label !== 'unknown') {
-                if(alertBox) {
-                    alertBox.textContent = `Welcome, ${result.label}! Attendance Marked.`;
-                    alertBox.className = 'alert-box success';
+                const memberData = members.find(m => m.name === result.label);
+                const isExpired = memberData && memberData.expiryDate < todayStr;
+
+                // Box Color: Green for active, Red for expired fee
+                const boxColor = isExpired ? '#ef4444' : '#22c55e';
+                const drawBox = new faceapi.draw.DrawBox(box, { 
+                    label: isExpired ? `${result.label} (FEE EXPIRED)` : `${result.label} (OK)`,
+                    boxColor: boxColor 
+                });
+                drawBox.draw(canvas);
+
+                // Sound Alert every 3 seconds per face detection
+                if (Date.now() - lastScanTime > 3000) {
+                    if (isExpired) {
+                        playSound('warning');
+                        if(alertBox) {
+                            alertBox.textContent = `ALERT: ${result.label}'s Fee Expired on ${memberData.expiryDate}!`;
+                            alertBox.className = 'alert-box danger';
+                        }
+                    } else {
+                        playSound('success');
+                        if(alertBox) {
+                            alertBox.textContent = `Welcome, ${result.label}! Attendance Marked.`;
+                            alertBox.className = 'alert-box success';
+                        }
+                        recordAttendance(result.label);
+                    }
+                    lastScanTime = Date.now();
                 }
-                recordAttendance(result.label);
+            } else {
+                const drawBox = new faceapi.draw.DrawBox(box, { label: 'Unknown' });
+                drawBox.draw(canvas);
             }
         });
     }, 1000);
