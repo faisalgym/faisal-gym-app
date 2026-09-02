@@ -18,6 +18,15 @@
             <div id="statusBadge" class="badge loading">Loading Models...</div>
         </header>
 
+        <!-- Live Shared Camera Screen -->
+        <div class="card camera-card" style="margin-bottom: 15px;">
+            <div class="video-wrapper">
+                <video id="video" width="320" height="240" autoplay muted playsinline></video>
+                <canvas id="canvas" width="320" height="240"></canvas>
+            </div>
+            <div id="alertBox" class="alert-box muted">Awaiting scanner...</div>
+        </div>
+
         <nav class="tabs">
             <button class="tab-btn active" onclick="showTab('attendanceTab')">Attendance</button>
             <button class="tab-btn" onclick="showTab('membersTab')">Members</button>
@@ -27,13 +36,8 @@
         <main>
             <section id="attendanceTab" class="tab-content active">
                 <div class="card">
-                    <h3>Face ID Attendance</h3>
-                    <p class="subtitle">Stand in front of the camera to check in</p>
-                    <div class="video-wrapper">
-                        <video id="video" width="320" height="240" autoplay muted playsinline></video>
-                        <canvas id="canvas" width="320" height="240"></canvas>
-                    </div>
-                    <div id="alertBox" class="alert-box muted">Awaiting scanner...</div>
+                    <h3>Live Scanner Active</h3>
+                    <p class="subtitle">Face input active above</p>
                 </div>
             </section>
 
@@ -68,11 +72,11 @@
                             <label>Membership Expiry Date</label>
                             <input type="date" id="memberExpiryDate" required>
                         </div>
-                        <div class="camera-snapshot-box">
+                        <div class="camera-snapshot-box" style="margin-top: 15px;">
                             <button type="button" class="btn secondary" onclick="captureSnapshot()">Capture Face ID</button>
-                            <span id="captureStatus" class="status-text"></span>
+                            <span id="captureStatus" class="status-text" style="display:block; margin-top:5px; font-weight:bold;"></span>
                         </div>
-                        <button type="submit" class="btn primary">Save Member</button>
+                        <button type="submit" class="btn primary" style="margin-top: 15px;">Save Member</button>
                     </form>
                 </div>
             </section>
