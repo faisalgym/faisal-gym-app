@@ -3,174 +3,210 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Faisal Gym Management</title>
+  <title>Faisal Gym - Management & Attendance System</title>
   <link rel="stylesheet" href="styles.css">
   
+  <!-- Direct Face-API and CDN Model Weights Script -->
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
 
-  <!-- App Header -->
+  <!-- Header Section with Logo & Clock -->
   <header class="app-header">
     <div class="logo-container">
-      <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Gym Logo" class="gym-logo">
+      <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Faisal Gym Logo" class="gym-logo">
       <div class="brand-title">FAISAL <span>GYM</span></div>
     </div>
-    <div id="liveClock" class="live-clock">00:00:00</div>
+    <div class="header-right">
+      <div id="liveClock" class="live-clock">00:00:00 AM</div>
+      <div id="systemStatus" class="status-badge loading">System Loading...</div>
+    </div>
   </header>
 
   <!-- Navigation Tabs -->
   <nav class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('attendance')">Attendance</button>
+    <button class="tab-btn" onclick="switchTab('todayLogs')">Today Logs</button>
     <button class="tab-btn" onclick="switchTab('members')">Members</button>
     <button class="tab-btn" onclick="switchTab('addMember')">Add Member</button>
   </nav>
 
   <main class="container">
-
-    <!-- TAB 1: Attendance -->
-    <div id="attendanceTab" class="tab-content active">
-      <div class="card">
-        <h3>Face ID Attendance</h3>
-        <div class="video-wrapper">
-          <video id="video" autoplay muted playsinline></video>
-        </div>
-        <div id="attendanceAlert" class="alert-box">Ready for scanning...</div>
+    
+    <!-- Analytics Quick Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span id="totalActiveMembers">0</span>
+        <label>Active Members</label>
+      </div>
+      <div class="stat-box">
+        <span id="todayAttendanceCount">0</span>
+        <label>Today Attendance</label>
+      </div>
+      <div class="stat-box overdue">
+        <span id="overdueCount">0</span>
+        <label>Fee Overdue</label>
       </div>
     </div>
 
-    <!-- TAB 2: Members List -->
+    <!-- Tab 1: Attendance Scanner -->
+    <div id="attendanceTab" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Face ID Live Attendance</h3>
+        </div>
+        <div class="video-wrapper">
+          <video id="video" autoplay muted playsinline></video>
+        </div>
+        <div id="attendanceAlert" class="alert-box">Awaiting scanner...</div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Today Logs -->
+    <div id="todayLogsTab" class="tab-content">
+      <div class="card">
+        <h3 class="card-title">Today's Attendance Feed</h3>
+        <p class="subtitle" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Auto resets daily at midnight.</p>
+        <ul id="logsList" class="data-list"></ul>
+      </div>
+    </div>
+
+    <!-- Tab 3: Member List & Search -->
     <div id="membersTab" class="tab-content">
       <div class="card">
-        <h3>Gym Members</h3>
-        <input type="text" id="memberSearch" class="form-input" placeholder="Search Member Name or ID..." oninput="handleSearch()">
+        <h3 class="card-title">Registered Gym Members</h3>
+        <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">👉 Click on any member to open profile, update fees, dates, or re-scan photo.</p>
+        <div class="search-box">
+          <input type="text" id="memberSearch" class="form-input" placeholder="Search by ID (e.g. A1) or Name..." oninput="handleSearch()">
+        </div>
         <ul id="membersList" class="data-list"></ul>
       </div>
     </div>
 
-    <!-- TAB 3: Register New Member -->
+    <!-- Tab 4: Add New Member -->
     <div id="addMemberTab" class="tab-content">
       <div class="card">
-        <h3>Register New Member</h3>
+        <h3 class="card-title">Register New Member</h3>
         <div class="video-wrapper small">
           <video id="registerVideo" autoplay muted playsinline></video>
         </div>
         <div class="form-group">
           <label>Member Name</label>
-          <input type="text" id="memberName" class="form-input" placeholder="Full Name">
+          <input type="text" id="memberName" class="form-input" placeholder="Enter Full Name">
         </div>
         <div class="form-group">
-          <label>Phone Number</label>
+          <label>Mobile Number</label>
           <input type="text" id="memberPhone" class="form-input" placeholder="03XXXXXXXXX">
         </div>
+        
         <div class="form-group">
-          <label>Admission Date</label>
+          <label>📅 Admission Date</label>
           <input type="date" id="admissionDate" class="form-input">
         </div>
+        
         <div class="form-group">
-          <label>Expiry Date</label>
+          <label>📅 Expiry Date (Fee Due Date)</label>
           <input type="date" id="expiryDate" class="form-input">
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(1)">+1 Month</button>
+            <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(3)">+3 Months</button>
+            <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(6)">+6 Months</button>
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="registerMember()">Capture Face & Save</button>
+
+        <button class="btn btn-primary" onclick="registerMember()" style="margin-top:10px;">Capture Face & Register Member</button>
       </div>
     </div>
 
   </main>
 
-  <!-- DEDICATED MEMBER PROFILE SCREEN (Demo Image Jaisa View) -->
-  <div id="profileScreen" class="profile-screen" style="display:none;">
-    
-    <!-- Top Bar -->
-    <div class="profile-header-bar">
-      <button class="back-btn" onclick="closeProfileScreen()">❮ Back</button>
-      <h2>Member Profile</h2>
-      <button class="edit-top-btn" onclick="toggleEditMode()">✏️</button>
-    </div>
-
-    <div class="profile-content">
+  <!-- Complete Member Profile & Photo Re-Scan Modal -->
+  <div id="profileModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999; justify-content:center; align-items:center; overflow-y:auto; padding:20px 0;">
+    <div class="card" style="width:90%; max-width:440px; background:var(--card-bg, #1a1e29); border-radius:12px; padding:20px; color:#fff; position:relative; max-height:90vh; overflow-y:auto;">
+      <button onclick="closeProfileModal()" style="position:absolute; top:12px; right:12px; background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✖</button>
       
-      <!-- Top Card: Photo & Basic Details -->
-      <div class="profile-main-card">
-        <div class="avatar-container">
-          <img id="pProfilePhoto" src="https://via.placeholder.com/100" class="profile-avatar" alt="Member Photo">
-          <button class="cam-badge-btn" onclick="openCamForReScan()">📷</button>
+      <h3 style="margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px;">👤 Edit Member Profile</h3>
+      
+      <input type="hidden" id="editMemberId">
+      
+      <!-- Camera Preview for Photo Change -->
+      <div style="text-align:center; margin-bottom:12px;">
+        <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">📷 Change / Re-scan Member Face ID</label>
+        <div class="video-wrapper small" style="height:150px; border-radius:8px; overflow:hidden; border:1px solid var(--border);">
+          <video id="editVideo" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
         </div>
-        <div class="profile-identity">
-          <h2 id="pName">Member Name</h2>
-          <span id="pIdTag" class="id-badge">ID: A1</span>
-          <p id="pPhone">0300-1234567</p>
-        </div>
-        <div class="quick-actions">
-          <a id="pCallBtn" href="#" class="action-circle call-btn">📞</a>
-          <a id="pWaBtn" href="#" target="_blank" class="action-circle wa-btn">💬</a>
+        <button type="button" onclick="updateMemberFacePhoto()" class="btn btn-secondary" style="margin-top:6px; padding:5px 10px; font-size:11px;">📸 Capture New Photo</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label style="font-size:12px;">Full Name</label>
+        <input type="text" id="editName" class="form-input">
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label style="font-size:12px;">Mobile Number (WhatsApp)</label>
+        <input type="text" id="editPhone" class="form-input">
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label style="font-size:12px;">📅 Admission Date</label>
+        <input type="date" id="editAdmission" class="form-input">
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label style="font-size:12px;">📅 Expiry Date (Fee Due)</label>
+        <input type="date" id="editExpiry" class="form-input">
+        <div style="display:flex; gap:6px; margin-top:6px;">
+          <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="addMonthsToEditExpiry(1)">+1 Month</button>
+          <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="addMonthsToEditExpiry(3)">+3 Months</button>
         </div>
       </div>
 
-      <!-- Live Camera Scanner for Photo Update (Hidden by Default) -->
-      <div id="reScanCamBox" class="rescan-box" style="display:none;">
-        <p style="font-size:12px; color:#fff; text-align:center;">Position Face & Capture New Photo</p>
-        <div class="video-wrapper small">
-          <video id="editVideo" autoplay muted playsinline></video>
-        </div>
-        <button class="btn btn-secondary" onclick="captureNewFaceDescriptor()">📸 Capture & Save Face</button>
-        <button class="btn btn-danger" onclick="closeCamForReScan()">Cancel</button>
+      <div class="form-group" style="margin-bottom:15px;">
+        <label style="font-size:12px;">💳 Fee Amount Received (Rs.)</label>
+        <input type="number" id="editFeeAmount" class="form-input" placeholder="e.g. 2000" value="2000">
       </div>
 
-      <!-- Info Grid Card -->
-      <div class="profile-grid-card">
-        <div class="grid-item">
-          <label>Joining Date</label>
-          <input type="date" id="pAdmissionInput" class="grid-input" readonly>
-        </div>
-        <div class="grid-item">
-          <label>Expiry Date</label>
-          <input type="date" id="pExpiryInput" class="grid-input" readonly>
-        </div>
-        <div class="grid-item">
-          <label>Membership</label>
-          <span class="grid-value">Monthly</span>
-        </div>
-        <div class="grid-item">
-          <label>Payment Status</label>
-          <span id="pStatusBadge" class="status-pill active">Paid</span>
-        </div>
+      <div id="debtWarningBox" style="display:none; background:rgba(255,0,0,0.15); border:1px solid var(--accent-red); padding:8px; border-radius:5px; font-size:12px; margin-bottom:12px; color:#ff6b6b;">
+        ⚠️ Extra Days Debt: <span id="modalDebtDays">0</span> Days Workout.
       </div>
 
-      <!-- Overdue / Debt Alert -->
-      <div id="pDebtBox" class="debt-alert-box" style="display:none;">
-        ⚠️ Overdue Warning: <span id="pDebtDays">0</span> Unpaid Gym Days!
-      </div>
-
-      <!-- Fee Add & Management Section -->
-      <div class="menu-list-card">
-        <div class="menu-item-header">
-          💳 Fee Renewal / Add Payment
-        </div>
-        <div class="fee-form-row">
-          <div class="form-group">
-            <label>Fee Amount (Rs.)</label>
-            <input type="number" id="pFeeAmount" class="form-input" value="2000">
-          </div>
-          <div class="form-group">
-            <label>Add Duration</label>
-            <div class="btn-group">
-              <button class="btn-mini" onclick="addMonthsToProfileExpiry(1)">+1 Mon</button>
-              <button class="btn-mini" onclick="addMonthsToProfileExpiry(3)">+3 Mon</button>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-whatsapp" onclick="saveFeeAndSendWhatsApp()">
-          💬 Add Fee & Send WhatsApp Receipt
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn btn-primary" onclick="saveProfileAndSendWhatsApp()" style="background:#25D366; color:#fff; font-weight:bold; border:none; padding:10px; border-radius:6px; cursor:pointer;">
+          💬 Save Fee & Send WhatsApp Receipt
         </button>
-        <button class="btn btn-save" onclick="saveProfileChangesOnly()">
+        <button class="btn btn-secondary" onclick="saveProfileOnly()" style="padding:8px; font-size:12px; border:none; cursor:pointer;">
           💾 Save Profile Changes
         </button>
       </div>
-
     </div>
   </div>
 
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().split('T')[0];
+      const admInput = document.getElementById('admissionDate');
+      if (admInput && !admInput.value) {
+        admInput.value = today;
+        setQuickExpiry(1);
+      }
+    });
+
+    function setQuickExpiry(months) {
+      const admInput = document.getElementById('admissionDate');
+      const expInput = document.getElementById('expiryDate');
+      let baseDate = admInput && admInput.value ? new Date(admInput.value) : new Date();
+      baseDate.setMonth(baseDate.getMonth() + months);
+      expInput.value = baseDate.toISOString().split('T')[0];
+    }
+
+    function addMonthsToEditExpiry(months) {
+      const expInput = document.getElementById('editExpiry');
+      let baseDate = expInput && expInput.value ? new Date(expInput.value) : new Date();
+      baseDate.setMonth(baseDate.getMonth() + months);
+      expInput.value = baseDate.toISOString().split('T')[0];
+    }
+  </script>
 </body>
 </html>
