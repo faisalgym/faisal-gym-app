@@ -56,14 +56,16 @@ async function loadModels() {
   }
 }
 
-// 4. Start Camera Streams (Back Camera Priority)
+// 4. Start Camera Stream (Back Camera Fix)
 function startVideo() {
   const video = document.getElementById('video');
   const registerVideo = document.getElementById('registerVideo');
-  const editVideo = document.getElementById('editVideo');
-
+  
+  // facingMode: "environment" forces mobile devices to use the rear (back) camera
   const constraints = { 
-    video: { facingMode: { exact: "environment" } } 
+    video: { 
+      facingMode: { exact: "environment" } 
+    } 
   };
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -71,21 +73,20 @@ function startVideo() {
       .then(stream => {
         if (video) video.srcObject = stream;
         if (registerVideo) registerVideo.srcObject = stream;
-        if (editVideo) editVideo.srcObject = stream;
       })
       .catch(err => {
+        // Fallback for laptops/desktops that don't have dual camera modes
         navigator.mediaDevices.getUserMedia({ video: true })
           .then(stream => {
             if (video) video.srcObject = stream;
             if (registerVideo) registerVideo.srcObject = stream;
-            if (editVideo) editVideo.srcObject = stream;
           })
           .catch(e => console.error("Camera access error:", e));
       });
   }
 }
 
-// 5. Auto Member ID Generator
+// 5. Auto Member ID Generator (A1, A2, A3...)
 function generateNextMemberId() {
   if (members.length === 0) return 'A1';
   const lastId = members[members.length - 1].id;
@@ -128,7 +129,6 @@ async function registerMember() {
     phone: phone,
     admissionDate: admissionDate || new Date().toISOString().split('T')[0],
     expiryDate: expiryDate,
-    extraDaysDebt: 0,
     descriptor: Array.from(detection.descriptor)
   };
 
@@ -186,12 +186,11 @@ if (videoElement) {
   });
 }
 
-// 9. Mark Attendance & Lifetime Extra Days Debt
+// 9. Mark Attendance & Extra Days Logic
 function markAttendance(memberId, alertBox) {
-  const memberIndex = members.findIndex(m => m.id === memberId);
-  if (memberIndex === -1) return;
-  
-  const member = members[memberIndex];
+  const member = members.find(m => m.id === memberId);
+  if (!member) return;
+
   const todayStr = new Date().toISOString().split('T')[0];
   const alreadyLogged = attendanceLogs.some(log => log.memberId === memberId && log.date === todayStr);
 
@@ -201,12 +200,11 @@ function markAttendance(memberId, alertBox) {
   expiry.setHours(0,0,0,0);
 
   let isExpired = false;
+  let extraDays = 0;
   if (today > expiry) {
     isExpired = true;
-    if (!alreadyLogged) {
-      member.extraDaysDebt = (member.extraDaysDebt || 0) + 1;
-      localStorage.setItem('gym_members', JSON.stringify(members));
-    }
+    const diffTime = Math.abs(today - expiry);
+    extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   if (!alreadyLogged) {
@@ -216,18 +214,17 @@ function markAttendance(memberId, alertBox) {
       time: new Date().toLocaleTimeString(),
       date: todayStr,
       isExpired: isExpired,
-      extraDays: member.extraDaysDebt || 0
+      extraDays: extraDays
     };
     attendanceLogs.unshift(log);
     localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs));
     renderLogs();
     updateDashboardStats();
-    renderMembersList();
   }
 
   if (alertBox) {
     if (isExpired) {
-      alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! ${member.extraDaysDebt || 1} Unpaid Extra Days!`;
+      alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! Expired ${extraDays} Extra Days Ago.`;
       alertBox.className = "alert-box danger";
     } else {
       alertBox.innerText = `WELCOME: ${member.name} (${member.id}) - Attendance Marked!`;
@@ -236,7 +233,7 @@ function markAttendance(memberId, alertBox) {
   }
 }
 
-// 10. Render Member List (Clicking Member Card Opens Profile)
+// 10. Render Member List & Interactive Actions
 function renderMembersList(filterQuery = '') {
   const listEl = document.getElementById('membersList');
   if (!listEl) return;
@@ -259,158 +256,38 @@ function renderMembersList(filterQuery = '') {
     expiry.setHours(0,0,0,0);
 
     let statusHtml = `<span style="color:var(--success); font-weight:bold;">Active</span>`;
-    let debtText = '';
-
-    if (m.extraDaysDebt && m.extraDaysDebt > 0) {
-      debtText = `<br><span style="color:var(--accent-red); font-size:11px; font-weight:bold;">Debt: ${m.extraDaysDebt} Extra Days</span>`;
-    }
+    let extraText = '';
 
     if (today > expiry) {
+      const extraDays = Math.ceil(Math.abs(today - expiry) / (1000 * 60 * 60 * 24));
       statusHtml = `<span style="color:var(--accent-red); font-weight:bold;">Expired</span>`;
+      extraText = `<br><span style="color:var(--accent-red); font-size:11px;">Overdue: ${extraDays} Extra Days</span>`;
     }
-
-    const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
-    const formattedPhone = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : cleanPhone;
 
     const li = document.createElement('li');
     li.className = 'member-card-item';
-    li.style.display = 'flex';
-    li.style.justifyContent = 'space-between';
-    li.style.alignItems = 'center';
-    li.style.padding = '12px';
-    li.style.borderBottom = '1px solid var(--border)';
-    li.style.cursor = 'pointer';
-    
     li.innerHTML = `
-      <div class="member-info" onclick="openProfileModal('${m.id}')" style="flex-grow:1;">
-        <h4 style="margin:0;">${m.name} <span class="member-id-tag">${m.id}</span></h4>
-        <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">Phone: ${m.phone} | Expiry: ${m.expiryDate} ${debtText}</p>
+      <div class="member-info">
+        <h4>${m.name} <span class="member-id-tag">${m.id}</span></h4>
+        <p>Phone: ${m.phone} | Expiry: ${m.expiryDate} ${extraText}</p>
       </div>
-      <div style="text-align:right; display:flex; align-items:center; gap:6px;">
+      <div>
         ${statusHtml}
-        <a href="https://wa.me/${formattedPhone}" target="_blank" onclick="event.stopPropagation();" style="background:#25D366; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:12px; display:inline-block;">💬</a>
-        <button onclick="event.stopPropagation(); deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Delete</button>
+        <button onclick="deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-left:8px; cursor:pointer;">Delete</button>
       </div>
     `;
     listEl.appendChild(li);
   });
 }
 
-// 11. Profile Modal Open/Close Controls
-function openProfileModal(id) {
-  const member = members.find(m => m.id === id);
-  if (!member) return;
-
-  document.getElementById('editMemberId').value = member.id;
-  document.getElementById('editName').value = member.name;
-  document.getElementById('editPhone').value = member.phone;
-  document.getElementById('editAdmission').value = member.admissionDate || '';
-  document.getElementById('editExpiry').value = member.expiryDate || '';
-
-  const debtBox = document.getElementById('debtWarningBox');
-  const debtDaysEl = document.getElementById('modalDebtDays');
-  if (member.extraDaysDebt && member.extraDaysDebt > 0) {
-    debtDaysEl.innerText = member.extraDaysDebt;
-    debtBox.style.display = 'block';
-  } else {
-    debtBox.style.display = 'none';
-  }
-
-  document.getElementById('profileModal').style.display = 'flex';
-  startVideo();
-}
-
-function closeProfileModal() {
-  document.getElementById('profileModal').style.display = 'none';
-}
-
-// 12. Re-Scan & Update Member Face ID Photo
-async function updateMemberFacePhoto() {
-  const id = document.getElementById('editMemberId').value;
-  const member = members.find(m => m.id === id);
-  const editVideo = document.getElementById('editVideo');
-
-  if (!member || !editVideo) return;
-
-  const detection = await faceapi.detectSingleFace(editVideo)
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (!detection) {
-    alert("No face detected! Make sure member's face is clearly visible in the camera.");
-    return;
-  }
-
-  member.descriptor = Array.from(detection.descriptor);
-  localStorage.setItem('gym_members', JSON.stringify(members));
-  initFaceMatcher();
-  alert(`Face photo re-scanned and updated successfully for ${member.name}!`);
-}
-
-// 13. Save Profile & Send WhatsApp Receipt
-function saveProfileAndSendWhatsApp() {
-  const id = document.getElementById('editMemberId').value;
-  const member = members.find(m => m.id === id);
-  if (!member) return;
-
-  member.name = document.getElementById('editName').value.trim();
-  member.phone = document.getElementById('editPhone').value.trim();
-  member.admissionDate = document.getElementById('editAdmission').value;
-  member.expiryDate = document.getElementById('editExpiry').value;
-  
-  const feePaid = document.getElementById('editFeeAmount').value || '2000';
-  member.extraDaysDebt = 0; // Clear Debt
-
-  localStorage.setItem('gym_members', JSON.stringify(members));
-  renderMembersList();
-  updateDashboardStats();
-  closeProfileModal();
-
-  // WhatsApp Message Formatting
-  const cleanPhone = member.phone.replace(/[^0-9]/g, '');
-  const formattedPhone = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : cleanPhone;
-  
-  const todayStr = new Date().toLocaleDateString();
-  const receiptText = `*FAISAL GYM - OFFICIAL RECEIPT* 🏋️‍♂️\n` +
-                      `-----------------------------------\n` +
-                      `*Member Name:* ${member.name} (${member.id})\n` +
-                      `*Payment Date:* ${todayStr}\n` +
-                      `*Fee Amount Paid:* Rs. ${feePaid}\n` +
-                      `*New Expiry Date:* ${member.expiryDate}\n` +
-                      `*Status:* Paid & Active ✅\n` +
-                      `-----------------------------------\n` +
-                      `_Thank you for training at Faisal Gym!_`;
-
-  const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(receiptText)}`;
-  window.open(waUrl, '_blank');
-}
-
-function saveProfileOnly() {
-  const id = document.getElementById('editMemberId').value;
-  const member = members.find(m => m.id === id);
-  if (!member) return;
-
-  member.name = document.getElementById('editName').value.trim();
-  member.phone = document.getElementById('editPhone').value.trim();
-  member.admissionDate = document.getElementById('editAdmission').value;
-  member.expiryDate = document.getElementById('editExpiry').value;
-  member.extraDaysDebt = 0;
-
-  localStorage.setItem('gym_members', JSON.stringify(members));
-  renderMembersList();
-  updateDashboardStats();
-  closeProfileModal();
-  alert("Member details & payment status updated successfully!");
-}
-
-// 14. Search Handler
+// 11. Search Handler
 function handleSearch() {
   const searchEl = document.getElementById('memberSearch');
   const query = searchEl ? searchEl.value : '';
   renderMembersList(query);
 }
 
-// 15. Delete Member
+// 12. Delete Member
 function deleteMember(id) {
   if (confirm(`Are you sure you want to delete member ID ${id}?`)) {
     members = members.filter(m => m.id !== id);
@@ -421,7 +298,7 @@ function deleteMember(id) {
   }
 }
 
-// 16. Render Today's Attendance Logs
+// 13. Render Today's Attendance Logs
 function renderLogs() {
   const logsEl = document.getElementById('logsList');
   if (!logsEl) return;
@@ -455,7 +332,7 @@ function renderLogs() {
   });
 }
 
-// 17. Auto Daily Refresh Logic
+// 14. Auto Daily Refresh Logic
 function checkDailyReset() {
   const lastReset = localStorage.getItem('gym_last_reset');
   const todayStr = new Date().toISOString().split('T')[0];
@@ -466,7 +343,7 @@ function checkDailyReset() {
   }
 }
 
-// 18. Dashboard Quick Analytics Stats
+// 15. Dashboard Quick Analytics Stats
 function updateDashboardStats() {
   const activeCountEl = document.getElementById('totalActiveMembers');
   const todayCountEl = document.getElementById('todayAttendanceCount');
@@ -482,7 +359,7 @@ function updateDashboardStats() {
   members.forEach(m => {
     const expiry = new Date(m.expiryDate);
     expiry.setHours(0,0,0,0);
-    if (today > expiry || (m.extraDaysDebt && m.extraDaysDebt > 0)) overdueCount++;
+    if (today > expiry) overdueCount++;
   });
 
   const todayLogsCount = attendanceLogs.filter(l => l.date === todayStr).length;
