@@ -1,294 +1,331 @@
-const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-
 let labeledDescriptors = [];
-let faceMatcher;
-let tempDescriptor = null;
-let lastScanTime = 0; // Prevent spam sounds
+let faceMatcher = null;
+let members = JSON.parse(localStorage.getItem('gym_members')) || [];
+let attendanceLogs = JSON.parse(localStorage.getItem('gym_attendance_logs')) || [];
 
-const statusBadge = document.getElementById('statusBadge');
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const alertBox = document.getElementById('alertBox');
-
-// Audio Effects (Web Audio API)
-function playSound(type) {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    if (type === 'success') {
-        // High Success Beep
-        osc.frequency.setValueAtTime(880, ctx.currentTime); 
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.2);
-    } else if (type === 'warning') {
-        // Low Warning Tone for Expiry
-        osc.frequency.setValueAtTime(300, ctx.currentTime); 
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
-    }
-}
-
-async function loadModels() {
-    try {
-        if(statusBadge) statusBadge.textContent = 'Loading Models...';
-        
-        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-
-        if(statusBadge) {
-            statusBadge.textContent = 'System Ready';
-            statusBadge.className = 'badge ready';
-        }
-        
-        startVideo();
-        loadMembers();
-    } catch (err) {
-        console.error(err);
-        if(statusBadge) {
-            statusBadge.textContent = 'Error Loading Models';
-            statusBadge.className = 'badge danger';
-        }
-    }
-}
-
-// Force Back Camera (facingMode: environment)
-async function startVideo() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: { exact: "environment" } } 
-        });
-        if(video) video.srcObject = stream;
-    } catch (err) {
-        // Fallback to default camera if exact back camera fails
-        try {
-            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            if(video) video.srcObject = fallbackStream;
-        } catch(e) {
-            if(alertBox) {
-                alertBox.textContent = 'Camera access denied or unavailable.';
-                alertBox.className = 'alert-box';
-            }
-        }
-    }
-}
-
-function showTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    if(event && event.currentTarget) event.currentTarget.classList.add('active');
-    const targetTab = document.getElementById(tabId);
-    if(targetTab) targetTab.classList.add('active');
-}
-
-function setupAutoDates() {
-    const today = new Date();
-    const joinInput = document.getElementById('memberJoinDate');
-    const expiryInput = document.getElementById('memberExpiryDate');
-
-    if (joinInput && expiryInput) {
-        joinInput.value = today.toISOString().split('T')[0];
-        const expiryDate = new Date(today);
-        expiryDate.setMonth(expiryDate.getMonth() + 1);
-        expiryInput.value = expiryDate.toISOString().split('T')[0];
-    }
-}
-
-document.getElementById('memberJoinDate')?.addEventListener('change', (e) => {
-    const selectedDate = new Date(e.target.value);
-    if (!isNaN(selectedDate)) {
-        selectedDate.setMonth(selectedDate.getMonth() + 1);
-        document.getElementById('memberExpiryDate').value = selectedDate.toISOString().split('T')[0];
-    }
+// 1. Initial Load & Live Clock
+window.addEventListener('DOMContentLoaded', () => {
+  startClock();
+  checkDailyReset();
+  loadModels();
+  updateDashboardStats();
+  renderMembersList();
+  renderLogs();
 });
 
-function getStoredMembers() {
-    return JSON.parse(localStorage.getItem('faisal_gym_members')) || [];
+function startClock() {
+  setInterval(() => {
+    const now = new Date();
+    document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+  }, 1000);
 }
 
-function saveStoredMembers(members) {
-    localStorage.setItem('faisal_gym_members', JSON.stringify(members));
+// 2. Navigation Tab Switcher
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  
+  document.getElementById(tabName + 'Tab').classList.add('active');
+  event.currentTarget.classList.add('active');
 }
 
-function loadMembers() {
-    const members = getStoredMembers();
-    const totalElem = document.getElementById('totalMembers');
-    if(totalElem) totalElem.textContent = members.length;
-    
-    const list = document.getElementById('membersList');
-    if(list) {
-        list.innerHTML = '';
-        members.forEach(m => {
-            const li = document.createElement('li');
-            li.className = 'member-item';
-            li.innerHTML = `
-                <div class="member-info">
-                    <h4>${m.name}</h4>
-                    <p>Phone: ${m.phone} | Fee: PKR ${m.fee}</p>
-                    <p><small>Joined: ${m.joinDate || 'N/A'} | Expiry: ${m.expiryDate || 'N/A'}</small></p>
-                </div>
-                <span style="color: #22c55e;">Registered</span>
-            `;
-            list.appendChild(li);
-        });
-    }
-
-    updateFaceMatcher(members);
+// 3. Model Loading & Face-API Setup
+async function loadModels() {
+  const statusEl = document.getElementById('systemStatus');
+  try {
+    await Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+      faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+    ]);
+    statusEl.innerText = "System Ready";
+    statusEl.className = "status-badge ready";
+    initFaceMatcher();
+    startVideo();
+  } catch (err) {
+    statusEl.innerText = "Model Load Failed";
+    statusEl.className = "status-badge loading";
+  }
 }
 
-async function updateFaceMatcher(members) {
-    if (members.length === 0) return;
-
-    const labeled = [];
-    for (const m of members) {
-        if (m.descriptor) {
-            const Float32Desc = new Float32Array(Object.values(m.descriptor));
-            labeled.push(new faceapi.LabeledFaceDescriptors(m.name, [Float32Desc]));
-        }
-    }
-
-    if (labeled.length > 0) {
-        faceMatcher = new faceapi.FaceMatcher(labeled, 0.6);
-    }
+// 4. Start Camera Stream
+function startVideo() {
+  const video = document.getElementById('video');
+  const registerVideo = document.getElementById('registerVideo');
+  
+  navigator.mediaDevices.getUserMedia({ video: {} })
+    .then(stream => {
+      if (video) video.srcObject = stream;
+      if (registerVideo) registerVideo.srcObject = stream;
+    })
+    .catch(err => console.error("Camera access denied:", err));
 }
 
-async function captureSnapshot() {
-    const statusText = document.getElementById('captureStatus');
-    if(statusText) statusText.textContent = 'Detecting Face...';
+// 5. Auto Member ID Generator (A1, A2, A3...)
+function generateNextMemberId() {
+  if (members.length === 0) return 'A1';
+  const lastId = members[members.length - 1].id;
+  const num = parseInt(lastId.replace('A', '')) || members.length;
+  return 'A' + (num + 1);
+}
 
-    if(!video || !video.srcObject) {
-        if(statusText) {
-            statusText.textContent = 'Camera not ready.';
-            statusText.style.color = '#ef4444';
-        }
-        return;
-    }
+// 6. Member Registration
+async function registerMember() {
+  const name = document.getElementById('memberName').value.trim();
+  const phone = document.getElementById('memberPhone').value.trim();
+  const admissionDate = document.getElementById('admissionDate').value;
+  const expiryDate = document.getElementById('expiryDate').value;
+  const video = document.getElementById('registerVideo');
 
-    const detection = await faceapi.detectSingleFace(video)
+  if (!name || !phone || !expiryDate) {
+    alert('Please fill Name, Phone, and Expiry Date!');
+    return;
+  }
+
+  const detection = await faceapi.detectSingleFace(video)
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  if (!detection) {
+    alert('No face detected! Please position face clearly in front of camera.');
+    return;
+  }
+
+  const newMember = {
+    id: generateNextMemberId(),
+    name: name,
+    phone: phone,
+    admissionDate: admissionDate || new Date().toISOString().split('T')[0],
+    expiryDate: expiryDate,
+    descriptor: Array.from(detection.descriptor)
+  };
+
+  members.push(newMember);
+  localStorage.setItem('gym_members', JSON.stringify(members));
+
+  alert(`Member Registered Successfully! ID: ${newMember.id}`);
+  document.getElementById('memberName').value = '';
+  document.getElementById('memberPhone').value = '';
+
+  initFaceMatcher();
+  renderMembersList();
+  updateDashboardStats();
+  switchTab('members');
+}
+
+// 7. Initialize Face Matcher
+function initFaceMatcher() {
+  if (members.length === 0) return;
+  labeledDescriptors = members.map(m => {
+    return new faceapi.LabeledFaceDescriptors(
+      `${m.id} - ${m.name}`,
+      [new Float32Array(m.descriptor)]
+    );
+  });
+  faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+}
+
+// 8. Live Attendance Detection Engine
+const video = document.getElementById('video');
+if (video) {
+  video.addEventListener('play', () => {
+    setInterval(async () => {
+      if (!faceMatcher) return;
+
+      const detection = await faceapi.detectSingleFace(video)
         .withFaceLandmarks()
         .withFaceDescriptor();
 
-    if (detection) {
-        tempDescriptor = detection.descriptor;
-        if(statusText) {
-            statusText.textContent = 'Face Captured Successfully!';
-            statusText.style.color = '#22c55e';
+      const alertBox = document.getElementById('attendanceAlert');
+
+      if (detection) {
+        const match = faceMatcher.findBestMatch(detection.descriptor);
+        if (match.label !== 'unknown') {
+          const memberId = match.label.split(' - ')[0];
+          markAttendance(memberId, alertBox);
+        } else {
+          alertBox.innerText = "Unknown Face Detected!";
+          alertBox.className = "alert-box danger";
         }
-        playSound('success');
-    } else {
-        if(statusText) {
-            statusText.textContent = 'No face detected. Align face clearly.';
-            statusText.style.color = '#ef4444';
-        }
-    }
+      }
+    }, 3000);
+  });
 }
 
-document.getElementById('addMemberForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!tempDescriptor) {
-        alert('Please capture reference face first.');
-        return;
-    }
+// 9. Mark Attendance & Extra Days Logic
+function markAttendance(memberId, alertBox) {
+  const member = members.find(m => m.id === memberId);
+  if (!member) return;
 
-    const name = document.getElementById('memberName').value;
-    const phone = document.getElementById('memberPhone').value;
-    const fee = document.getElementById('memberFee').value;
-    const joinDate = document.getElementById('memberJoinDate').value;
-    const expiryDate = document.getElementById('memberExpiryDate').value;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const alreadyLogged = attendanceLogs.some(log => log.memberId === memberId && log.date === todayStr);
 
-    const members = getStoredMembers();
-    members.push({ name, phone, fee, joinDate, expiryDate, descriptor: tempDescriptor });
-    saveStoredMembers(members);
+  const expiry = new Date(member.expiryDate);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  expiry.setHours(0,0,0,0);
 
-    alert(`Member ${name} added!\nExpiry Date: ${expiryDate}`);
-    document.getElementById('addMemberForm').reset();
-    
-    setupAutoDates();
-    const statusText = document.getElementById('captureStatus');
-    if(statusText) statusText.textContent = '';
-    tempDescriptor = null;
-    loadMembers();
-});
+  // Extra Days Calculator
+  let isExpired = false;
+  let extraDays = 0;
+  if (today > expiry) {
+    isExpired = true;
+    const diffTime = Math.abs(today - expiry);
+    extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
 
-function recordAttendance(memberName) {
-    const logs = JSON.parse(localStorage.getItem('faisal_gym_attendance_logs')) || [];
-    const now = new Date();
-    const todayStr = now.toLocaleDateString();
-    const timeStr = now.toLocaleTimeString();
+  if (!alreadyLogged) {
+    const log = {
+      memberId: member.id,
+      name: member.name,
+      time: new Date().toLocaleTimeString(),
+      date: todayStr,
+      isExpired: isExpired,
+      extraDays: extraDays
+    };
+    attendanceLogs.unshift(log);
+    localStorage.setItem('gym_attendance_logs', JSON.stringify(attendanceLogs));
+    renderLogs();
+    updateDashboardStats();
+  }
 
-    const alreadyMarked = logs.some(log => log.name === memberName && log.date === todayStr);
-
-    if (!alreadyMarked) {
-        logs.push({ name: memberName, date: todayStr, time: timeStr });
-        localStorage.setItem('faisal_gym_attendance_logs', JSON.stringify(logs));
-    }
+  if (isExpired) {
+    alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! Expired ${extraDays} Extra Days Ago.`;
+    alertBox.className = "alert-box danger";
+  } else {
+    alertBox.innerText = `WELCOME: ${member.name} (${member.id}) - Attendance Marked!`;
+    alertBox.className = "alert-box success";
+  }
 }
 
-// Live Face Scanner Loop with Sound & Fee Expiry Check
-video?.addEventListener('play', () => {
-    const displaySize = { width: video.width || 320, height: video.height || 240 };
-    faceapi.matchDimensions(canvas, displaySize);
+// 10. Render Member List & Interactive Actions
+function renderMembersList(filterQuery = '') {
+  const listEl = document.getElementById('membersList');
+  listEl.innerHTML = '';
 
-    setInterval(async () => {
-        if (!faceMatcher) return;
+  const filtered = members.filter(m => 
+    m.id.toLowerCase().includes(filterQuery.toLowerCase()) ||
+    m.name.toLowerCase().includes(filterQuery.toLowerCase())
+  );
 
-        const detections = await faceapi.detectAllFaces(video)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<li style="text-align:center; padding:15px; color:var(--text-muted);">No members found.</li>`;
+    return;
+  }
 
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  filtered.forEach(m => {
+    const today = new Date();
+    const expiry = new Date(m.expiryDate);
+    today.setHours(0,0,0,0);
+    expiry.setHours(0,0,0,0);
 
-        const members = getStoredMembers();
-        const todayStr = new Date().toISOString().split('T')[0];
+    let statusHtml = `<span style="color:var(--success); font-weight:bold;">Active</span>`;
+    let extraText = '';
 
-        resizedDetections.forEach(detection => {
-            const result = faceMatcher.findBestMatch(detection.descriptor);
-            const box = detection.detection.box;
+    if (today > expiry) {
+      const extraDays = Math.ceil(Math.abs(today - expiry) / (1000 * 60 * 60 * 24));
+      statusHtml = `<span style="color:var(--accent-red); font-weight:bold;">Expired</span>`;
+      extraText = `<br><span style="color:var(--accent-red); font-size:11px;">Overdue: ${extraDays} Extra Days</span>`;
+    }
 
-            if (result.label !== 'unknown') {
-                const memberData = members.find(m => m.name === result.label);
-                const isExpired = memberData && memberData.expiryDate < todayStr;
+    const li = document.createElement('li');
+    li.className = 'member-card-item';
+    li.innerHTML = `
+      <div class="member-info">
+        <h4>${m.name} <span class="member-id-tag">${m.id}</span></h4>
+        <p>Phone: ${m.phone} | Expiry: ${m.expiryDate} ${extraText}</p>
+      </div>
+      <div>
+        ${statusHtml}
+        <button onclick="deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-left:8px; cursor:pointer;">Delete</button>
+      </div>
+    `;
+    listEl.appendChild(li);
+  });
+}
 
-                // Box Color: Green for active, Red for expired fee
-                const boxColor = isExpired ? '#ef4444' : '#22c55e';
-                const drawBox = new faceapi.draw.DrawBox(box, { 
-                    label: isExpired ? `${result.label} (FEE EXPIRED)` : `${result.label} (OK)`,
-                    boxColor: boxColor 
-                });
-                drawBox.draw(canvas);
+// 11. Search Handler
+function handleSearch() {
+  const query = document.getElementById('memberSearch').value;
+  renderMembersList(query);
+}
 
-                // Sound Alert every 3 seconds per face detection
-                if (Date.now() - lastScanTime > 3000) {
-                    if (isExpired) {
-                        playSound('warning');
-                        if(alertBox) {
-                            alertBox.textContent = `ALERT: ${result.label}'s Fee Expired on ${memberData.expiryDate}!`;
-                            alertBox.className = 'alert-box danger';
-                        }
-                    } else {
-                        playSound('success');
-                        if(alertBox) {
-                            alertBox.textContent = `Welcome, ${result.label}! Attendance Marked.`;
-                            alertBox.className = 'alert-box success';
-                        }
-                        recordAttendance(result.label);
-                    }
-                    lastScanTime = Date.now();
-                }
-            } else {
-                const drawBox = new faceapi.draw.DrawBox(box, { label: 'Unknown' });
-                drawBox.draw(canvas);
-            }
-        });
-    }, 1000);
-});
+// 12. Delete Member
+function deleteMember(id) {
+  if (confirm(`Are you sure you want to delete member ID ${id}?`)) {
+    members = members.filter(m => m.id !== id);
+    localStorage.setItem('gym_members', JSON.stringify(members));
+    initFaceMatcher();
+    renderMembersList();
+    updateDashboardStats();
+  }
+}
 
-setupAutoDates();
-loadModels();
+// 13. Render Today's Attendance Logs
+function renderLogs() {
+  const logsEl = document.getElementById('logsList');
+  if (!logsEl) return;
+  logsEl.innerHTML = '';
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayLogs = attendanceLogs.filter(l => l.date === todayStr);
+
+  if (todayLogs.length === 0) {
+    logsEl.innerHTML = `<li style="text-align:center; padding:15px; color:var(--text-muted);">No attendance marked today yet.</li>`;
+    return;
+  }
+
+  todayLogs.forEach(l => {
+    const li = document.createElement('li');
+    li.className = 'data-item';
+    li.style.padding = '10px';
+    li.style.borderBottom = '1px solid var(--border)';
+    li.innerHTML = `
+      <div>
+        <strong>${l.name} (${l.memberId})</strong>
+        <p style="font-size:11px; color:var(--text-muted);">${l.time}</p>
+      </div>
+      <div>
+        ${l.isExpired ? `<span style="color:var(--accent-red); font-size:11px; font-weight:bold;">${l.extraDays} Extra Days!</span>` : `<span style="color:var(--success); font-size:11px;">Paid</span>`}
+      </div>
+    `;
+    logsEl.appendChild(li);
+  });
+}
+
+// 14. Auto Daily Refresh Logic (At Midnight)
+function checkDailyReset() {
+  const lastReset = localStorage.getItem('gym_last_reset');
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  if (lastReset !== todayStr) {
+    localStorage.setItem('gym_last_reset', todayStr);
+    renderLogs();
+  }
+}
+
+// 15. Dashboard Quick Analytics Stats
+function updateDashboardStats() {
+  const activeCountEl = document.getElementById('totalActiveMembers');
+  const todayCountEl = document.getElementById('todayAttendanceCount');
+  const overdueCountEl = document.getElementById('overdueCount');
+
+  if (!activeCountEl) return;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  let overdueCount = 0;
+  members.forEach(m => {
+    const expiry = new Date(m.expiryDate);
+    expiry.setHours(0,0,0,0);
+    if (today > expiry) overdueCount++;
+  });
+
+  const todayLogsCount = attendanceLogs.filter(l => l.date === todayStr).length;
+
+  activeCountEl.innerText = members.length;
+  todayCountEl.innerText = todayLogsCount;
+  overdueCountEl.innerText = overdueCount;
+}
