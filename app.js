@@ -28,15 +28,15 @@ function switchTab(tabName) {
   
   const targetTab = document.getElementById(tabName + 'Tab');
   if (targetTab) targetTab.classList.add('active');
-  if (event && event.currentTarget) event.currentTarget.classList.add('active');
+  if (window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
 }
 
-// 3. Model Loading & Face-API Setup (GitHub Pages Path Fixed)
+// 3. Model Loading & Face-API Setup (Direct Online CDN Fix)
 async function loadModels() {
   const statusEl = document.getElementById('systemStatus');
   try {
-    // Relative path used for GitHub Pages compatibility
-    const MODEL_URL = './models'; 
+    // Online Direct Models Link to fix "Model Load Failed" on GitHub Pages
+    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models'; 
     await Promise.all([
       faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
