@@ -31,12 +31,11 @@ function switchTab(tabName) {
   if (window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
 }
 
-// 3. Model Loading & Face-API Setup (Direct Online CDN Fix)
+// 3. Model Loading & Face-API Setup (Guaranteed Direct Weights Fix)
 async function loadModels() {
   const statusEl = document.getElementById('systemStatus');
   try {
-    // Online Direct Models Link to fix "Model Load Failed" on GitHub Pages
-    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models'; 
+    const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights'; 
     await Promise.all([
       faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
