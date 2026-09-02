@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faisal Gym - App</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="logo">
+      <span class="badge">FG</span>
+      <h2>Faisal Gym</h2>
+    </div>
+    <div id="status-badge" class="status loading">Loading Models...</div>
+  </header>
+
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('attendance')">Attendance</button>
+    <button class="tab-btn" onclick="switchTab('members')">Members</button>
+    <button class="tab-btn" onclick="switchTab('add-member')">Add Member</button>
+  </nav>
+
+  <main class="container">
+
+    <section id="attendance" class="tab-content active">
+      <div class="card camera-card">
+        <h3>Face ID Attendance</h3>
+        <p class="subtitle">Stand in front of the camera to check in</p>
+        
+        <div class="video-wrapper">
+          <video id="attendance-video" autoplay muted playsinline></video>
+          <canvas id="attendance-overlay"></canvas>
+        </div>
+
+        <div id="attendance-result" class="alert-box">
+          Awaiting scanner...
+        </div>
+      </div>
+    </section>
+
+    <section id="members" class="tab-content">
+      <div class="card">
+        <h3>Members & Fee Status</h3>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span id="total-count">0</span>
+            <label>Total</label>
+          </div>
+          <div class="stat-box overdue">
+            <span id="overdue-count">0</span>
+            <label>Overdue</label>
+          </div>
+        </div>
+
+        <ul id="members-list" class="data-list"></ul>
+      </div>
+    </section>
+
+    <section id="add-member" class="tab-content">
+      <div class="card">
+        <h3>Register New Member</h3>
+        <form id="register-form" onsubmit="registerMember(event)">
+          
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="member-name" required placeholder="e.g. Ali Khan">
+          </div>
+
+          <div class="form-group">
+            <label>WhatsApp Number</label>
+            <input type="tel" id="member-phone" required placeholder="03001234567">
+          </div>
+
+          <div class="form-group">
+            <label>Monthly Fee (PKR)</label>
+            <input type="number" id="member-fee" required value="3000">
+          </div>
+
+          <div class="form-group">
+            <label>Capture Reference Face</label>
+            <div class="video-wrapper small">
+              <video id="reg-video" autoplay muted playsinline></video>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="captureFace()">Take Snapshot</button>
+            <input type="hidden" id="face-descriptor">
+            <p id="snap-status" class="snap-hint">Camera loading...</p>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Save Member</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>
