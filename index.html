@@ -1,95 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faisal Gym - Face ID Attendance</title>
-    <link rel="stylesheet" href="styles.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script defer src="app.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faisal Gym - Management & Attendance System</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="face-api.min.js"></script>
+  <script defer src="app.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <div class="brand">
-                <span class="logo">FG</span>
-                <h1>Faisal Gym</h1>
-            </div>
-            <div id="statusBadge" class="badge loading">Loading Models...</div>
-        </header>
 
-        <!-- Live Shared Camera Screen -->
-        <div class="card camera-card" style="margin-bottom: 15px;">
-            <div class="video-wrapper">
-                <video id="video" width="320" height="240" autoplay muted playsinline></video>
-                <canvas id="canvas" width="320" height="240"></canvas>
-            </div>
-            <div id="alertBox" class="alert-box muted">Awaiting scanner...</div>
-        </div>
-
-        <nav class="tabs">
-            <button class="tab-btn active" onclick="showTab('attendanceTab')">Attendance</button>
-            <button class="tab-btn" onclick="showTab('logsTab')">Today Logs</button>
-            <button class="tab-btn" onclick="showTab('membersTab')">Members</button>
-            <button class="tab-btn" onclick="showTab('addTab')">Add Member</button>
-        </nav>
-
-        <main>
-            <section id="attendanceTab" class="tab-content active">
-                <div class="card">
-                    <h3>Live Auto Attendance</h3>
-                    <p class="subtitle">Chehra samne aate hi auto mark ho jayega</p>
-                </div>
-            </section>
-
-            <!-- Naya Auto Attendance Logs Section -->
-            <section id="logsTab" class="tab-content">
-                <div class="card">
-                    <h3>Today's Attendance Logs (<span id="totalLogs">0</span>)</h3>
-                    <ul id="logsList" class="members-list"></ul>
-                </div>
-            </section>
-
-            <section id="membersTab" class="tab-content">
-                <div class="card">
-                    <h3>Registered Members (<span id="totalMembers">0</span>)</h3>
-                    <ul id="membersList" class="members-list"></ul>
-                </div>
-            </section>
-
-            <section id="addTab" class="tab-content">
-                <div class="card">
-                    <h3>Register New Member</h3>
-                    <form id="addMemberForm">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" id="memberName" required placeholder="Enter member name">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="tel" id="memberPhone" required placeholder="03001234567">
-                        </div>
-                        <div class="form-group">
-                            <label>Monthly Fee (PKR)</label>
-                            <input type="number" id="memberFee" required placeholder="2000">
-                        </div>
-                        <div class="form-group">
-                            <label>Joining Date</label>
-                            <input type="date" id="memberJoinDate" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Membership Expiry Date</label>
-                            <input type="date" id="memberExpiryDate" required>
-                        </div>
-                        <div class="camera-snapshot-box" style="margin-top: 15px;">
-                            <button type="button" class="btn secondary" onclick="captureSnapshot()">Capture Face ID</button>
-                            <span id="captureStatus" class="status-text" style="display:block; margin-top:5px; font-weight:bold;"></span>
-                        </div>
-                        <button type="submit" class="btn primary" style="margin-top: 15px;">Save Member</button>
-                    </form>
-                </div>
-            </section>
-        </main>
+  <!-- Header Section with Logo & Clock -->
+  <header class="app-header">
+    <div class="logo-container">
+      <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Faisal Gym Logo" class="gym-logo">
+      <div class="brand-title">FAISAL <span>GYM</span></div>
     </div>
+    <div class="header-right">
+      <div id="liveClock" class="live-clock">00:00:00 AM</div>
+      <div id="systemStatus" class="status-badge loading">System Loading...</div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('attendance')">Attendance</button>
+    <button class="tab-btn" onclick="switchTab('todayLogs')">Today Logs</button>
+    <button class="tab-btn" onclick="switchTab('members')">Members</button>
+    <button class="tab-btn" onclick="switchTab('addMember')">Add Member</button>
+  </nav>
+
+  <main class="container">
+    
+    <!-- Analytics Quick Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span id="totalActiveMembers">0</span>
+        <label>Active Members</label>
+      </div>
+      <div class="stat-box">
+        <span id="todayAttendanceCount">0</span>
+        <label>Today Attendance</label>
+      </div>
+      <div class="stat-box overdue">
+        <span id="overdueCount">0</span>
+        <label>Fee Overdue</label>
+      </div>
+    </div>
+
+    <!-- Tab 1: Attendance Scanner -->
+    <div id="attendanceTab" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Face ID Live Attendance</h3>
+        </div>
+        <div class="video-wrapper">
+          <video id="video" autoplay muted></video>
+        </div>
+        <div id="attendanceAlert" class="alert-box">Awaiting scanner...</div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Today Logs -->
+    <div id="todayLogsTab" class="tab-content">
+      <div class="card">
+        <h3 class="card-title">Today's Attendance Feed</h3>
+        <p class="subtitle" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Auto resets daily at midnight.</p>
+        <ul id="logsList" class="data-list"></ul>
+      </div>
+    </div>
+
+    <!-- Tab 3: Member List & Search -->
+    <div id="membersTab" class="tab-content">
+      <div class="card">
+        <h3 class="card-title">Registered Gym Members</h3>
+        <div class="search-box">
+          <input type="text" id="memberSearch" class="form-input" placeholder="Search by ID (e.g. A1) or Name..." oninput="handleSearch()">
+        </div>
+        <ul id="membersList" class="data-list"></ul>
+      </div>
+    </div>
+
+    <!-- Tab 4: Add New Member -->
+    <div id="addMemberTab" class="tab-content">
+      <div class="card">
+        <h3 class="card-title">Register New Member</h3>
+        <div class="video-wrapper small">
+          <video id="registerVideo" autoplay muted></video>
+        </div>
+        <div class="form-group">
+          <label>Member Name</label>
+          <input type="text" id="memberName" class="form-input" placeholder="Enter Full Name">
+        </div>
+        <div class="form-group">
+          <label>Mobile Number</label>
+          <input type="text" id="memberPhone" class="form-input" placeholder="03XXXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label>Admission Date</label>
+          <input type="date" id="admissionDate" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Expiry Date</label>
+          <input type="date" id="expiryDate" class="form-input">
+        </div>
+        <button class="btn btn-primary" onclick="registerMember()">Capture Face & Register Member</button>
+      </div>
+    </div>
+
+  </main>
+
 </body>
 </html>
