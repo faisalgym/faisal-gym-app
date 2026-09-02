@@ -130,7 +130,13 @@ async function captureSnapshot() {
     const statusText = document.getElementById('captureStatus');
     if(statusText) statusText.textContent = 'Detecting Face...';
 
-    if(!video) return;
+    if(!video || !video.srcObject) {
+        if(statusText) {
+            statusText.textContent = 'Camera not ready. Please refresh.';
+            statusText.style.color = '#ef4444';
+        }
+        return;
+    }
 
     const detection = await faceapi.detectSingleFace(video)
         .withFaceLandmarks()
@@ -144,7 +150,7 @@ async function captureSnapshot() {
         }
     } else {
         if(statusText) {
-            statusText.textContent = 'No face detected. Align face clearly.';
+            statusText.textContent = 'No face detected. Align face clearly in camera.';
             statusText.style.color = '#ef4444';
         }
     }
