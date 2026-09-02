@@ -31,7 +31,7 @@ function switchTab(tabName) {
   if (window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
 }
 
-// 3. Model Loading & Face-API Setup (Guaranteed Direct Weights Fix)
+// 3. Model Loading & Face-API Setup
 async function loadModels() {
   const statusEl = document.getElementById('systemStatus');
   try {
@@ -56,18 +56,33 @@ async function loadModels() {
   }
 }
 
-// 4. Start Camera Stream
+// 4. Start Camera Stream (Back Camera Fix)
 function startVideo() {
   const video = document.getElementById('video');
   const registerVideo = document.getElementById('registerVideo');
   
+  // facingMode: "environment" forces mobile devices to use the rear (back) camera
+  const constraints = { 
+    video: { 
+      facingMode: { exact: "environment" } 
+    } 
+  };
+
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({ video: {} })
+    navigator.mediaDevices.getUserMedia(constraints)
       .then(stream => {
         if (video) video.srcObject = stream;
         if (registerVideo) registerVideo.srcObject = stream;
       })
-      .catch(err => console.error("Camera access error:", err));
+      .catch(err => {
+        // Fallback for laptops/desktops that don't have dual camera modes
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            if (video) video.srcObject = stream;
+            if (registerVideo) registerVideo.srcObject = stream;
+          })
+          .catch(e => console.error("Camera access error:", e));
+      });
   }
 }
 
