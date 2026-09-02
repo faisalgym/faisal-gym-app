@@ -56,15 +56,14 @@ async function loadModels() {
   }
 }
 
-// 4. Start Camera Stream (Back Camera Priority)
+// 4. Start Camera Streams (Back Camera Priority)
 function startVideo() {
   const video = document.getElementById('video');
   const registerVideo = document.getElementById('registerVideo');
-  
+  const editVideo = document.getElementById('editVideo');
+
   const constraints = { 
-    video: { 
-      facingMode: { exact: "environment" } 
-    } 
+    video: { facingMode: { exact: "environment" } } 
   };
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -72,12 +71,14 @@ function startVideo() {
       .then(stream => {
         if (video) video.srcObject = stream;
         if (registerVideo) registerVideo.srcObject = stream;
+        if (editVideo) editVideo.srcObject = stream;
       })
       .catch(err => {
         navigator.mediaDevices.getUserMedia({ video: true })
           .then(stream => {
             if (video) video.srcObject = stream;
             if (registerVideo) registerVideo.srcObject = stream;
+            if (editVideo) editVideo.srcObject = stream;
           })
           .catch(e => console.error("Camera access error:", e));
       });
@@ -185,7 +186,7 @@ if (videoElement) {
   });
 }
 
-// 9. Mark Attendance & Lifetime Extra Days Debt Logic
+// 9. Mark Attendance & Lifetime Extra Days Debt
 function markAttendance(memberId, alertBox) {
   const memberIndex = members.findIndex(m => m.id === memberId);
   if (memberIndex === -1) return;
@@ -235,7 +236,7 @@ function markAttendance(memberId, alertBox) {
   }
 }
 
-// 10. Render Member List with Renewal & Forgive Controls
+// 10. Render Member List (Clicking Member Card Opens Profile)
 function renderMembersList(filterQuery = '') {
   const listEl = document.getElementById('membersList');
   if (!listEl) return;
@@ -268,64 +269,148 @@ function renderMembersList(filterQuery = '') {
       statusHtml = `<span style="color:var(--accent-red); font-weight:bold;">Expired</span>`;
     }
 
+    const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
+    const formattedPhone = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : cleanPhone;
+
     const li = document.createElement('li');
     li.className = 'member-card-item';
     li.style.display = 'flex';
-    li.style.justifySpaceBetween = 'space-between';
-    li.style.padding = '10px';
+    li.style.justifyContent = 'space-between';
+    li.style.alignItems = 'center';
+    li.style.padding = '12px';
     li.style.borderBottom = '1px solid var(--border)';
+    li.style.cursor = 'pointer';
     
     li.innerHTML = `
-      <div class="member-info">
-        <h4>${m.name} <span class="member-id-tag">${m.id}</span></h4>
-        <p>Phone: ${m.phone} | Expiry: ${m.expiryDate} ${debtText}</p>
+      <div class="member-info" onclick="openProfileModal('${m.id}')" style="flex-grow:1;">
+        <h4 style="margin:0;">${m.name} <span class="member-id-tag">${m.id}</span></h4>
+        <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">Phone: ${m.phone} | Expiry: ${m.expiryDate} ${debtText}</p>
       </div>
-      <div style="text-align:right;">
-        ${statusHtml}<br>
-        <button onclick="renewFee('${m.id}')" style="background:var(--success); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-top:4px; cursor:pointer;">Renew Fee</button>
-        <button onclick="deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; margin-left:4px; cursor:pointer;">Delete</button>
+      <div style="text-align:right; display:flex; align-items:center; gap:6px;">
+        ${statusHtml}
+        <a href="https://wa.me/${formattedPhone}" target="_blank" onclick="event.stopPropagation();" style="background:#25D366; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:12px; display:inline-block;">💬</a>
+        <button onclick="event.stopPropagation(); deleteMember('${m.id}')" style="background:var(--accent-red); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Delete</button>
       </div>
     `;
     listEl.appendChild(li);
   });
 }
 
-// 11. Fee Renewal & Debt Clearance Handler
-function renewFee(id) {
+// 11. Profile Modal Open/Close Controls
+function openProfileModal(id) {
   const member = members.find(m => m.id === id);
   if (!member) return;
 
-  let message = `Renew Fee for ${member.name} (${member.id})?\n`;
+  document.getElementById('editMemberId').value = member.id;
+  document.getElementById('editName').value = member.name;
+  document.getElementById('editPhone').value = member.phone;
+  document.getElementById('editAdmission').value = member.admissionDate || '';
+  document.getElementById('editExpiry').value = member.expiryDate || '';
+
+  const debtBox = document.getElementById('debtWarningBox');
+  const debtDaysEl = document.getElementById('modalDebtDays');
   if (member.extraDaysDebt && member.extraDaysDebt > 0) {
-    message += `\n⚠️ Unpaid Balance: ${member.extraDaysDebt} Extra Days Worked Out.\nDo you want to CHARGE or FORGIVE these extra days?`;
+    debtDaysEl.innerText = member.extraDaysDebt;
+    debtBox.style.display = 'block';
+  } else {
+    debtBox.style.display = 'none';
   }
 
-  const choice = confirm(message + "\n\nPress OK to Clear Debt & Renew, or Cancel to keep pending.");
-  if (choice) {
-    const months = prompt("Enter number of months to extend membership (e.g., 1, 3, 6):", "1");
-    if (months && !isNaN(months)) {
-      let baseDate = new Date();
-      baseDate.setMonth(baseDate.getMonth() + parseInt(months));
-      
-      member.expiryDate = baseDate.toISOString().split('T')[0];
-      member.extraDaysDebt = 0; // Debt Cleared
-      
-      localStorage.setItem('gym_members', JSON.stringify(members));
-      alert(`Membership Renewed Successfully till ${member.expiryDate}! Extra days cleared.`);
-      renderMembersList();
-      updateDashboardStats();
-    }
-  }
+  document.getElementById('profileModal').style.display = 'flex';
+  startVideo();
 }
 
-// 12. Search Handler
+function closeProfileModal() {
+  document.getElementById('profileModal').style.display = 'none';
+}
+
+// 12. Re-Scan & Update Member Face ID Photo
+async function updateMemberFacePhoto() {
+  const id = document.getElementById('editMemberId').value;
+  const member = members.find(m => m.id === id);
+  const editVideo = document.getElementById('editVideo');
+
+  if (!member || !editVideo) return;
+
+  const detection = await faceapi.detectSingleFace(editVideo)
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  if (!detection) {
+    alert("No face detected! Make sure member's face is clearly visible in the camera.");
+    return;
+  }
+
+  member.descriptor = Array.from(detection.descriptor);
+  localStorage.setItem('gym_members', JSON.stringify(members));
+  initFaceMatcher();
+  alert(`Face photo re-scanned and updated successfully for ${member.name}!`);
+}
+
+// 13. Save Profile & Send WhatsApp Receipt
+function saveProfileAndSendWhatsApp() {
+  const id = document.getElementById('editMemberId').value;
+  const member = members.find(m => m.id === id);
+  if (!member) return;
+
+  member.name = document.getElementById('editName').value.trim();
+  member.phone = document.getElementById('editPhone').value.trim();
+  member.admissionDate = document.getElementById('editAdmission').value;
+  member.expiryDate = document.getElementById('editExpiry').value;
+  
+  const feePaid = document.getElementById('editFeeAmount').value || '2000';
+  member.extraDaysDebt = 0; // Clear Debt
+
+  localStorage.setItem('gym_members', JSON.stringify(members));
+  renderMembersList();
+  updateDashboardStats();
+  closeProfileModal();
+
+  // WhatsApp Message Formatting
+  const cleanPhone = member.phone.replace(/[^0-9]/g, '');
+  const formattedPhone = cleanPhone.startsWith('0') ? '92' + cleanPhone.slice(1) : cleanPhone;
+  
+  const todayStr = new Date().toLocaleDateString();
+  const receiptText = `*FAISAL GYM - OFFICIAL RECEIPT* 🏋️‍♂️\n` +
+                      `-----------------------------------\n` +
+                      `*Member Name:* ${member.name} (${member.id})\n` +
+                      `*Payment Date:* ${todayStr}\n` +
+                      `*Fee Amount Paid:* Rs. ${feePaid}\n` +
+                      `*New Expiry Date:* ${member.expiryDate}\n` +
+                      `*Status:* Paid & Active ✅\n` +
+                      `-----------------------------------\n` +
+                      `_Thank you for training at Faisal Gym!_`;
+
+  const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(receiptText)}`;
+  window.open(waUrl, '_blank');
+}
+
+function saveProfileOnly() {
+  const id = document.getElementById('editMemberId').value;
+  const member = members.find(m => m.id === id);
+  if (!member) return;
+
+  member.name = document.getElementById('editName').value.trim();
+  member.phone = document.getElementById('editPhone').value.trim();
+  member.admissionDate = document.getElementById('editAdmission').value;
+  member.expiryDate = document.getElementById('editExpiry').value;
+  member.extraDaysDebt = 0;
+
+  localStorage.setItem('gym_members', JSON.stringify(members));
+  renderMembersList();
+  updateDashboardStats();
+  closeProfileModal();
+  alert("Member details & payment status updated successfully!");
+}
+
+// 14. Search Handler
 function handleSearch() {
   const searchEl = document.getElementById('memberSearch');
   const query = searchEl ? searchEl.value : '';
   renderMembersList(query);
 }
 
-// 13. Delete Member
+// 15. Delete Member
 function deleteMember(id) {
   if (confirm(`Are you sure you want to delete member ID ${id}?`)) {
     members = members.filter(m => m.id !== id);
@@ -336,7 +421,7 @@ function deleteMember(id) {
   }
 }
 
-// 14. Render Today's Attendance Logs
+// 16. Render Today's Attendance Logs
 function renderLogs() {
   const logsEl = document.getElementById('logsList');
   if (!logsEl) return;
@@ -370,7 +455,7 @@ function renderLogs() {
   });
 }
 
-// 15. Auto Daily Refresh Logic
+// 17. Auto Daily Refresh Logic
 function checkDailyReset() {
   const lastReset = localStorage.getItem('gym_last_reset');
   const todayStr = new Date().toISOString().split('T')[0];
@@ -381,7 +466,7 @@ function checkDailyReset() {
   }
 }
 
-// 16. Dashboard Quick Analytics Stats
+// 18. Dashboard Quick Analytics Stats
 function updateDashboardStats() {
   const activeCountEl = document.getElementById('totalActiveMembers');
   const todayCountEl = document.getElementById('todayAttendanceCount');
