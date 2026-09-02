@@ -57,7 +57,7 @@
           <h3 class="card-title">Face ID Live Attendance</h3>
         </div>
         <div class="video-wrapper">
-          <video id="video" autoplay muted></video>
+          <video id="video" autoplay muted playsinline></video>
         </div>
         <div id="attendanceAlert" class="alert-box">Awaiting scanner...</div>
       </div>
@@ -88,7 +88,7 @@
       <div class="card">
         <h3 class="card-title">Register New Member</h3>
         <div class="video-wrapper small">
-          <video id="registerVideo" autoplay muted></video>
+          <video id="registerVideo" autoplay muted playsinline></video>
         </div>
         <div class="form-group">
           <label>Member Name</label>
@@ -98,19 +98,46 @@
           <label>Mobile Number</label>
           <input type="text" id="memberPhone" class="form-input" placeholder="03XXXXXXXXX">
         </div>
+        
         <div class="form-group">
-          <label>Admission Date</label>
+          <label>📅 Admission Date</label>
           <input type="date" id="admissionDate" class="form-input">
         </div>
+        
         <div class="form-group">
-          <label>Expiry Date</label>
+          <label>📅 Expiry Date (Fee Due Date)</label>
           <input type="date" id="expiryDate" class="form-input">
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(1)">+1 Month</button>
+            <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(3)">+3 Months</button>
+            <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(6)">+6 Months</button>
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="registerMember()">Capture Face & Register Member</button>
+
+        <button class="btn btn-primary" onclick="registerMember()" style="margin-top:10px;">Capture Face & Register Member</button>
       </div>
     </div>
 
   </main>
 
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().split('T')[0];
+      const admInput = document.getElementById('admissionDate');
+      if (admInput && !admInput.value) {
+        admInput.value = today;
+        setQuickExpiry(1);
+      }
+    });
+
+    function setQuickExpiry(months) {
+      const admInput = document.getElementById('admissionDate');
+      const expInput = document.getElementById('expiryDate');
+      let baseDate = admInput && admInput.value ? new Date(admInput.value) : new Date();
+      
+      baseDate.setMonth(baseDate.getMonth() + months);
+      expInput.value = baseDate.toISOString().split('T')[0];
+    }
+  </script>
 </body>
 </html>
