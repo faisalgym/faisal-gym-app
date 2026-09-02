@@ -29,6 +29,7 @@
 
         <nav class="tabs">
             <button class="tab-btn active" onclick="showTab('attendanceTab')">Attendance</button>
+            <button class="tab-btn" onclick="showTab('logsTab')">Today Logs</button>
             <button class="tab-btn" onclick="showTab('membersTab')">Members</button>
             <button class="tab-btn" onclick="showTab('addTab')">Add Member</button>
         </nav>
@@ -36,8 +37,16 @@
         <main>
             <section id="attendanceTab" class="tab-content active">
                 <div class="card">
-                    <h3>Live Scanner Active</h3>
-                    <p class="subtitle">Face input active above</p>
+                    <h3>Live Auto Attendance</h3>
+                    <p class="subtitle">Chehra samne aate hi auto mark ho jayega</p>
+                </div>
+            </section>
+
+            <!-- Naya Auto Attendance Logs Section -->
+            <section id="logsTab" class="tab-content">
+                <div class="card">
+                    <h3>Today's Attendance Logs (<span id="totalLogs">0</span>)</h3>
+                    <ul id="logsList" class="members-list"></ul>
                 </div>
             </section>
 
