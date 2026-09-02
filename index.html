@@ -76,7 +76,6 @@
     <div id="membersTab" class="tab-content">
       <div class="card">
         <h3 class="card-title">Registered Gym Members</h3>
-        <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">👉 Click on any member to open profile, update fees, dates, or re-scan photo.</p>
         <div class="search-box">
           <input type="text" id="memberSearch" class="form-input" placeholder="Search by ID (e.g. A1) or Name..." oninput="handleSearch()">
         </div>
@@ -84,7 +83,7 @@
       </div>
     </div>
 
-    <!-- Tab 4: Add New Member -->
+    <!-- Tab 4: Add New Member (With Enhanced Date & Quick Expiry Calendar Tools) -->
     <div id="addMemberTab" class="tab-content">
       <div class="card">
         <h3 class="card-title">Register New Member</h3>
@@ -100,6 +99,7 @@
           <input type="text" id="memberPhone" class="form-input" placeholder="03XXXXXXXXX">
         </div>
         
+        <!-- Calendar Dates Selection Group -->
         <div class="form-group">
           <label>📅 Admission Date</label>
           <input type="date" id="admissionDate" class="form-input">
@@ -108,6 +108,7 @@
         <div class="form-group">
           <label>📅 Expiry Date (Fee Due Date)</label>
           <input type="date" id="expiryDate" class="form-input">
+          <!-- Quick Duration Presets -->
           <div style="display:flex; gap:8px; margin-top:8px;">
             <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(1)">+1 Month</button>
             <button type="button" class="btn btn-secondary" style="padding:6px; font-size:12px;" onclick="setQuickExpiry(3)">+3 Months</button>
@@ -121,75 +122,14 @@
 
   </main>
 
-  <!-- Complete Member Profile & Photo Re-Scan Modal -->
-  <div id="profileModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999; justify-content:center; align-items:center; overflow-y:auto; padding:20px 0;">
-    <div class="card" style="width:90%; max-width:440px; background:var(--card-bg, #1a1e29); border-radius:12px; padding:20px; color:#fff; position:relative; max-height:90vh; overflow-y:auto;">
-      <button onclick="closeProfileModal()" style="position:absolute; top:12px; right:12px; background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✖</button>
-      
-      <h3 style="margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:8px;">👤 Edit Member Profile</h3>
-      
-      <input type="hidden" id="editMemberId">
-      
-      <!-- Camera Preview for Photo Change -->
-      <div style="text-align:center; margin-bottom:12px;">
-        <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">📷 Change / Re-scan Member Face ID</label>
-        <div class="video-wrapper small" style="height:150px; border-radius:8px; overflow:hidden; border:1px solid var(--border);">
-          <video id="editVideo" autoplay muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>
-        </div>
-        <button type="button" onclick="updateMemberFacePhoto()" class="btn btn-secondary" style="margin-top:6px; padding:5px 10px; font-size:11px;">📸 Capture New Photo</button>
-      </div>
-
-      <div class="form-group" style="margin-bottom:10px;">
-        <label style="font-size:12px;">Full Name</label>
-        <input type="text" id="editName" class="form-input">
-      </div>
-
-      <div class="form-group" style="margin-bottom:10px;">
-        <label style="font-size:12px;">Mobile Number (WhatsApp)</label>
-        <input type="text" id="editPhone" class="form-input">
-      </div>
-
-      <div class="form-group" style="margin-bottom:10px;">
-        <label style="font-size:12px;">📅 Admission Date</label>
-        <input type="date" id="editAdmission" class="form-input">
-      </div>
-
-      <div class="form-group" style="margin-bottom:10px;">
-        <label style="font-size:12px;">📅 Expiry Date (Fee Due)</label>
-        <input type="date" id="editExpiry" class="form-input">
-        <div style="display:flex; gap:6px; margin-top:6px;">
-          <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="addMonthsToEditExpiry(1)">+1 Month</button>
-          <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="addMonthsToEditExpiry(3)">+3 Months</button>
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-bottom:15px;">
-        <label style="font-size:12px;">💳 Fee Amount Received (Rs.)</label>
-        <input type="number" id="editFeeAmount" class="form-input" placeholder="e.g. 2000" value="2000">
-      </div>
-
-      <div id="debtWarningBox" style="display:none; background:rgba(255,0,0,0.15); border:1px solid var(--accent-red); padding:8px; border-radius:5px; font-size:12px; margin-bottom:12px; color:#ff6b6b;">
-        ⚠️ Extra Days Debt: <span id="modalDebtDays">0</span> Days Workout.
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <button class="btn btn-primary" onclick="saveProfileAndSendWhatsApp()" style="background:#25D366; color:#fff; font-weight:bold; border:none; padding:10px; border-radius:6px; cursor:pointer;">
-          💬 Save Fee & Send WhatsApp Receipt
-        </button>
-        <button class="btn btn-secondary" onclick="saveProfileOnly()" style="padding:8px; font-size:12px; border:none; cursor:pointer;">
-          💾 Save Profile Changes
-        </button>
-      </div>
-    </div>
-  </div>
-
   <script>
+    // Helper to auto-fill current date and calculate quick plan durations
     document.addEventListener("DOMContentLoaded", () => {
       const today = new Date().toISOString().split('T')[0];
       const admInput = document.getElementById('admissionDate');
       if (admInput && !admInput.value) {
         admInput.value = today;
-        setQuickExpiry(1);
+        setQuickExpiry(1); // Default set 1 month plan
       }
     });
 
@@ -197,13 +137,7 @@
       const admInput = document.getElementById('admissionDate');
       const expInput = document.getElementById('expiryDate');
       let baseDate = admInput && admInput.value ? new Date(admInput.value) : new Date();
-      baseDate.setMonth(baseDate.getMonth() + months);
-      expInput.value = baseDate.toISOString().split('T')[0];
-    }
-
-    function addMonthsToEditExpiry(months) {
-      const expInput = document.getElementById('editExpiry');
-      let baseDate = expInput && expInput.value ? new Date(expInput.value) : new Date();
+      
       baseDate.setMonth(baseDate.getMonth() + months);
       expInput.value = baseDate.toISOString().split('T')[0];
     }
