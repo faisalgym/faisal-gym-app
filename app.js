@@ -16,7 +16,8 @@ window.addEventListener('DOMContentLoaded', () => {
 function startClock() {
   setInterval(() => {
     const now = new Date();
-    document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+    const clockEl = document.getElementById('liveClock');
+    if (clockEl) clockEl.innerText = now.toLocaleTimeString();
   }, 1000);
 }
 
@@ -25,26 +26,34 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   
-  document.getElementById(tabName + 'Tab').classList.add('active');
-  event.currentTarget.classList.add('active');
+  const targetTab = document.getElementById(tabName + 'Tab');
+  if (targetTab) targetTab.classList.add('active');
+  if (event && event.currentTarget) event.currentTarget.classList.add('active');
 }
 
-// 3. Model Loading & Face-API Setup
+// 3. Model Loading & Face-API Setup (GitHub Pages Path Fixed)
 async function loadModels() {
   const statusEl = document.getElementById('systemStatus');
   try {
+    // Relative path used for GitHub Pages compatibility
+    const MODEL_URL = './models'; 
     await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-      faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+      faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
     ]);
-    statusEl.innerText = "System Ready";
-    statusEl.className = "status-badge ready";
+    if (statusEl) {
+      statusEl.innerText = "System Ready";
+      statusEl.className = "status-badge ready";
+    }
     initFaceMatcher();
     startVideo();
   } catch (err) {
-    statusEl.innerText = "Model Load Failed";
-    statusEl.className = "status-badge loading";
+    if (statusEl) {
+      statusEl.innerText = "Model Load Failed";
+      statusEl.className = "status-badge loading";
+    }
+    console.error("Model loading error:", err);
   }
 }
 
@@ -53,12 +62,14 @@ function startVideo() {
   const video = document.getElementById('video');
   const registerVideo = document.getElementById('registerVideo');
   
-  navigator.mediaDevices.getUserMedia({ video: {} })
-    .then(stream => {
-      if (video) video.srcObject = stream;
-      if (registerVideo) registerVideo.srcObject = stream;
-    })
-    .catch(err => console.error("Camera access denied:", err));
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: {} })
+      .then(stream => {
+        if (video) video.srcObject = stream;
+        if (registerVideo) registerVideo.srcObject = stream;
+      })
+      .catch(err => console.error("Camera access error:", err));
+  }
 }
 
 // 5. Auto Member ID Generator (A1, A2, A3...)
@@ -71,16 +82,23 @@ function generateNextMemberId() {
 
 // 6. Member Registration
 async function registerMember() {
-  const name = document.getElementById('memberName').value.trim();
-  const phone = document.getElementById('memberPhone').value.trim();
-  const admissionDate = document.getElementById('admissionDate').value;
-  const expiryDate = document.getElementById('expiryDate').value;
+  const nameEl = document.getElementById('memberName');
+  const phoneEl = document.getElementById('memberPhone');
+  const admissionEl = document.getElementById('admissionDate');
+  const expiryEl = document.getElementById('expiryDate');
   const video = document.getElementById('registerVideo');
+
+  const name = nameEl ? nameEl.value.trim() : '';
+  const phone = phoneEl ? phoneEl.value.trim() : '';
+  const admissionDate = admissionEl ? admissionEl.value : '';
+  const expiryDate = expiryEl ? expiryEl.value : '';
 
   if (!name || !phone || !expiryDate) {
     alert('Please fill Name, Phone, and Expiry Date!');
     return;
   }
+
+  if (!video) return;
 
   const detection = await faceapi.detectSingleFace(video)
     .withFaceLandmarks()
@@ -103,9 +121,9 @@ async function registerMember() {
   members.push(newMember);
   localStorage.setItem('gym_members', JSON.stringify(members));
 
-  alert(`Member Registered Successfully! ID: ${newMember.id}`);
-  document.getElementById('memberName').value = '';
-  document.getElementById('memberPhone').value = '';
+  alert(`Member Registered Successfully! Assigned ID: ${newMember.id}`);
+  if (nameEl) nameEl.value = '';
+  if (phoneEl) phoneEl.value = '';
 
   initFaceMatcher();
   renderMembersList();
@@ -126,13 +144,13 @@ function initFaceMatcher() {
 }
 
 // 8. Live Attendance Detection Engine
-const video = document.getElementById('video');
-if (video) {
-  video.addEventListener('play', () => {
+const videoElement = document.getElementById('video');
+if (videoElement) {
+  videoElement.addEventListener('play', () => {
     setInterval(async () => {
       if (!faceMatcher) return;
 
-      const detection = await faceapi.detectSingleFace(video)
+      const detection = await faceapi.detectSingleFace(videoElement)
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -144,8 +162,10 @@ if (video) {
           const memberId = match.label.split(' - ')[0];
           markAttendance(memberId, alertBox);
         } else {
-          alertBox.innerText = "Unknown Face Detected!";
-          alertBox.className = "alert-box danger";
+          if (alertBox) {
+            alertBox.innerText = "Unknown Face Detected!";
+            alertBox.className = "alert-box danger";
+          }
         }
       }
     }, 3000);
@@ -165,7 +185,6 @@ function markAttendance(memberId, alertBox) {
   today.setHours(0,0,0,0);
   expiry.setHours(0,0,0,0);
 
-  // Extra Days Calculator
   let isExpired = false;
   let extraDays = 0;
   if (today > expiry) {
@@ -189,18 +208,21 @@ function markAttendance(memberId, alertBox) {
     updateDashboardStats();
   }
 
-  if (isExpired) {
-    alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! Expired ${extraDays} Extra Days Ago.`;
-    alertBox.className = "alert-box danger";
-  } else {
-    alertBox.innerText = `WELCOME: ${member.name} (${member.id}) - Attendance Marked!`;
-    alertBox.className = "alert-box success";
+  if (alertBox) {
+    if (isExpired) {
+      alertBox.innerText = `ALERT: ${member.name} (${member.id}) - FEE OVERDUE! Expired ${extraDays} Extra Days Ago.`;
+      alertBox.className = "alert-box danger";
+    } else {
+      alertBox.innerText = `WELCOME: ${member.name} (${member.id}) - Attendance Marked!`;
+      alertBox.className = "alert-box success";
+    }
   }
 }
 
 // 10. Render Member List & Interactive Actions
 function renderMembersList(filterQuery = '') {
   const listEl = document.getElementById('membersList');
+  if (!listEl) return;
   listEl.innerHTML = '';
 
   const filtered = members.filter(m => 
@@ -246,7 +268,8 @@ function renderMembersList(filterQuery = '') {
 
 // 11. Search Handler
 function handleSearch() {
-  const query = document.getElementById('memberSearch').value;
+  const searchEl = document.getElementById('memberSearch');
+  const query = searchEl ? searchEl.value : '';
   renderMembersList(query);
 }
 
@@ -281,19 +304,21 @@ function renderLogs() {
     li.style.padding = '10px';
     li.style.borderBottom = '1px solid var(--border)';
     li.innerHTML = `
-      <div>
-        <strong>${l.name} (${l.memberId})</strong>
-        <p style="font-size:11px; color:var(--text-muted);">${l.time}</p>
-      </div>
-      <div>
-        ${l.isExpired ? `<span style="color:var(--accent-red); font-size:11px; font-weight:bold;">${l.extraDays} Extra Days!</span>` : `<span style="color:var(--success); font-size:11px;">Paid</span>`}
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong>${l.name} (${l.memberId})</strong>
+          <p style="font-size:11px; color:var(--text-muted);">${l.time}</p>
+        </div>
+        <div>
+          ${l.isExpired ? `<span style="color:var(--accent-red); font-size:11px; font-weight:bold;">${l.extraDays} Extra Days!</span>` : `<span style="color:var(--success); font-size:11px;">Paid</span>`}
+        </div>
       </div>
     `;
     logsEl.appendChild(li);
   });
 }
 
-// 14. Auto Daily Refresh Logic (At Midnight)
+// 14. Auto Daily Refresh Logic
 function checkDailyReset() {
   const lastReset = localStorage.getItem('gym_last_reset');
   const todayStr = new Date().toISOString().split('T')[0];
