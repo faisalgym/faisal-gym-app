@@ -3,202 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faisal Gym - Management Dashboard</title>
+    <title>FAISAL GYM - Management System</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- Top Header & Branding -->
-    <header class="app-header">
-        <div class="brand-container">
-            <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Faisal Gym Logo" class="gym-logo">
-            <div class="brand-text">
-                <h1>FAISAL GYM</h1>
-                <p>Management & Operations System</p>
-            </div>
+    <!-- Header -->
+    <header>
+        <div class="logo-box">
+            <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Logo" class="gym-logo">
+            <h1>FAISAL <span>GYM</span></h1>
         </div>
-        <div class="header-actions">
-            <button class="btn btn-primary" onclick="openAddMemberModal()">
-                <i class="fa-solid fa-user-plus"></i> Add Member
-            </button>
-            <button class="btn btn-danger" onclick="openAddExpenseModal()">
-                <i class="fa-solid fa-receipt"></i> Add Expense
-            </button>
+        <div class="sys-status">
+            <div class="time-badge" id="liveClock">00:00:00 AM</div>
+            <div class="status-badge">System Ready</div>
         </div>
     </header>
 
-    <main class="main-container">
+    <!-- Navigation -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('attendanceTab', event)">Attendance</button>
+        <button class="tab-btn" onclick="switchTab('logsTab', event)">Logs</button>
+        <button class="tab-btn" onclick="switchTab('membersTab', event)">Members</button>
+        <button class="tab-btn" onclick="switchTab('financeTab', event)">Finance</button>
+        <button class="tab-btn" onclick="switchTab('addTab', event)">Add Member</button>
+    </div>
 
-        <!-- Attendance & Scanning Section -->
-        <section class="card glass-card attendance-section">
-            <h2><i class="fa-solid fa-qrcode"></i> Quick Attendance Scanner</h2>
-            <div class="attendance-controls">
-                <input type="text" id="attendanceInput" placeholder="Enter Member Auto ID (e.g. FG-101)...">
-                <button class="btn btn-success" onclick="markAttendance()"><i class="fa-solid fa-check"></i> Mark Attendance</button>
+    <div class="container">
+
+        <!-- Analytics Overview -->
+        <div class="dash-cards">
+            <div class="card" onclick="switchTab('membersTab', event)">
+                <h2 id="totalActiveCount">0</h2>
+                <p>Active Members</p>
+            </div>
+            <div class="card" onclick="switchTab('logsTab', event)">
+                <h2 id="todayAttendanceCount">0</h2>
+                <p>Today Attendance</p>
+            </div>
+            <div class="card overdue" onclick="switchTab('membersTab', event)">
+                <h2 id="feeOverdueCount">0</h2>
+                <p>Fee Overdue</p>
+            </div>
+        </div>
+
+        <!-- 1. Attendance Tab (Original Live Camera Feed Preserved) -->
+        <div id="attendanceTab" class="section-box active">
+            <div class="section-title">
+                <span><i class="fa-solid fa-camera"></i> Face Scanner / Quick Attendance</span>
+                <span class="cam-status-label">Environment Cam Active</span>
+            </div>
+            <div class="camera-container">
+                <video id="webcam" autoplay playsinline></video>
+                <div class="cam-overlay">📷 Live Scanner</div>
+            </div>
+            
+            <div class="quick-input-group">
+                <input type="text" id="attendanceInput" class="form-control" placeholder="Enter ID (e.g. FG-101) or Phone...">
+                <button class="btn-primary" onclick="markAutoAttendance()">Mark Attendance</button>
             </div>
             <div id="attendanceAlert" class="alert-box hidden"></div>
-        </section>
+        </div>
 
-        <!-- Interactive Dashboard Summary Cards -->
-        <section class="dashboard-grid">
-            <div class="card glass-card dash-card" onclick="filterMembers('active')">
-                <div class="dash-icon"><i class="fa-solid fa-user-check"></i></div>
-                <div class="dash-info">
-                    <h3>Active Members</h3>
-                    <p id="countActive" class="dash-count">0</p>
-                </div>
-            </div>
-
-            <div class="card glass-card dash-card" onclick="filterMembers('today')">
-                <div class="dash-icon"><i class="fa-solid fa-calendar-day"></i></div>
-                <div class="dash-info">
-                    <h3>Today Attendance</h3>
-                    <p id="countToday" class="dash-count">0</p>
-                </div>
-            </div>
-
-            <div class="card glass-card dash-card warning-border" onclick="filterMembers('overdue')">
-                <div class="dash-icon overdue-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                <div class="dash-info">
-                    <h3>Fee Overdue</h3>
-                    <p id="countOverdue" class="dash-count">0</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Financial Overview Dashboard -->
-        <section class="card glass-card finance-section">
-            <h2><i class="fa-solid fa-wallet"></i> Daily Financial Summary</h2>
-            <div class="finance-grid">
-                <div class="fin-card">
-                    <span class="fin-label">Cash Collected Today</span>
-                    <h4 id="todayCash">Rs. 0</h4>
-                </div>
-                <div class="fin-card">
-                    <span class="fin-label">Online Collected Today</span>
-                    <h4 id="todayOnline">Rs. 0</h4>
-                </div>
-                <div class="fin-card">
-                    <span class="fin-label">Total Expenses Today</span>
-                    <h4 id="todayExpenses" class="text-danger">Rs. 0</h4>
-                </div>
-                <div class="fin-card highlight">
-                    <span class="fin-label">Net Profit Today</span>
-                    <h4 id="todayNetProfit" class="text-neon">Rs. 0</h4>
-                </div>
-            </div>
-        </section>
-
-        <!-- Dynamic Member List Section -->
-        <section class="card glass-card list-section">
-            <div class="list-header">
-                <h2 id="listTitle"><i class="fa-solid fa-users"></i> All Members</h2>
-                <div class="search-box">
-                    <input type="text" id="searchMember" onkeyup="searchMembers()" placeholder="Search by name, ID, or phone...">
-                    <button class="btn btn-secondary" onclick="resetFilters()">Show All</button>
-                </div>
-            </div>
-
+        <!-- 2. Logs Tab -->
+        <div id="logsTab" class="section-box">
+            <div class="section-title">Today's Entry Log</div>
             <div class="table-responsive">
-                <table class="data-table">
+                <table>
                     <thead>
                         <tr>
-                            <th>Auto ID</th>
-                            <th>Photo</th>
-                            <th>Name</th>
-                            <th>Phone</th>
-                            <th>Expiry Date</th>
-                            <th>Pending Balance</th>
+                            <th>Time</th>
+                            <th>ID</th>
+                            <th>Member</th>
                             <th>Status</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="memberTableBody">
-                        <!-- Dynamic Rows injected via JS -->
+                    <tbody id="logsTableBody">
+                        <!-- Dynamic logs -->
                     </tbody>
                 </table>
             </div>
-        </section>
-    </main>
-
-    <!-- Modal: Add / Register Member -->
-    <div id="addMemberModal" class="modal hidden">
-        <div class="modal-content glass-card">
-            <span class="close-btn" onclick="closeAddMemberModal()">&times;</span>
-            <h2><i class="fa-solid fa-user-plus"></i> Register New Member</h2>
-            <form id="addMemberForm" onsubmit="handleAddMember(event)">
-                <div class="form-group">
-                    <label>Auto-Assigned ID:</label>
-                    <input type="text" id="newAutoId" readonly class="input-disabled">
-                </div>
-                <div class="form-group">
-                    <label>Full Name:</label>
-                    <input type="text" id="newName" required placeholder="Member full name">
-                </div>
-                <div class="form-group">
-                    <label>Phone Number (WhatsApp):</label>
-                    <input type="tel" id="newPhone" required placeholder="03XXXXXXXXX">
-                </div>
-                <div class="form-group">
-                    <label>Photo URL (Optional):</label>
-                    <input type="url" id="newPhoto" placeholder="https://example.com/photo.jpg">
-                </div>
-                <div class="form-group">
-                    <label>Admission Date:</label>
-                    <input type="date" id="newAdmissionDate" required>
-                </div>
-                <div class="form-group">
-                    <label>Fee Amount (Rs):</label>
-                    <input type="number" id="newFeeAmount" required placeholder="e.g. 2000">
-                </div>
-                <div class="form-group">
-                    <label>Payment Method:</label>
-                    <select id="newPaymentMode" required>
-                        <option value="Cash">Cash</option>
-                        <option value="Online">Online (JazzCash/EasyPaisa/Bank)</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Save & Activate Member</button>
-            </form>
         </div>
-    </div>
 
-    <!-- Modal: Member Profile Details & Payment History -->
-    <div id="profileModal" class="modal hidden">
-        <div class="modal-content glass-card profile-card-modal">
-            <span class="close-btn" onclick="closeProfileModal()">&times;</span>
-            <div id="profileDetails">
-                <!-- Dynamically populated profile content -->
+        <!-- 3. Members List Tab -->
+        <div id="membersTab" class="section-box">
+            <div class="section-title">Registered Members</div>
+            <div class="form-group">
+                <input type="text" id="searchBar" class="form-control" placeholder="Search by ID, Name, or Phone..." onkeyup="filterMembers()">
+            </div>
+            <div id="membersList">
+                <!-- Dynamic Member Cards -->
             </div>
         </div>
-    </div>
 
-    <!-- Modal: Add Daily Expense -->
-    <div id="addExpenseModal" class="modal hidden">
-        <div class="modal-content glass-card">
-            <span class="close-btn" onclick="closeAddExpenseModal()">&times;</span>
-            <h2><i class="fa-solid fa-file-invoice-dollar"></i> Add Gym Expense</h2>
-            <form id="addExpenseForm" onsubmit="handleAddExpense(event)">
+        <!-- 4. Financial & Expense Tab -->
+        <div id="financeTab" class="section-box">
+            <div class="section-title">Daily Financial Overview</div>
+            <div class="finance-grid">
+                <div class="fin-card">
+                    <span>Cash Collected Today</span>
+                    <h4 id="todayCash">Rs. 0</h4>
+                </div>
+                <div class="fin-card">
+                    <span>Online Collected Today</span>
+                    <h4 id="todayOnline">Rs. 0</h4>
+                </div>
+                <div class="fin-card text-danger">
+                    <span>Total Expenses Today</span>
+                    <h4 id="todayExpenses">Rs. 0</h4>
+                </div>
+                <div class="fin-card highlight text-neon">
+                    <span>Net Profit Today</span>
+                    <h4 id="todayNetProfit">Rs. 0</h4>
+                </div>
+            </div>
+
+            <div style="margin-top:20px;">
+                <div class="section-title">Add Gym Expense</div>
+                <form id="expenseForm" onsubmit="addExpense(event)">
+                    <div class="form-group">
+                        <input type="text" id="expTitle" class="form-control" placeholder="Expense Title / Reason" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" id="expAmount" class="form-control" placeholder="Amount (Rs)" required>
+                    </div>
+                    <div class="form-group">
+                        <select id="expMode" class="form-control">
+                            <option value="Cash">Cash</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-danger-btn">Record Expense</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 5. Add Member Tab -->
+        <div id="addTab" class="section-box">
+            <div class="section-title">New Member Registration</div>
+            <form id="addMemberForm" onsubmit="saveMember(event)">
                 <div class="form-group">
-                    <label>Expense Title / Reason:</label>
-                    <input type="text" id="expTitle" required placeholder="e.g. Electricity Bill, Refreshment, Maintenance">
+                    <label>Auto-Assigned ID</label>
+                    <input type="text" id="mAutoId" class="form-control input-disabled" readonly>
                 </div>
                 <div class="form-group">
-                    <label>Amount (Rs):</label>
-                    <input type="number" id="expAmount" required placeholder="e.g. 1500">
+                    <label>Full Name</label>
+                    <input type="text" id="mName" class="form-control" required placeholder="Enter member name">
                 </div>
                 <div class="form-group">
-                    <label>Payment Mode:</label>
-                    <select id="expPaymentMode" required>
+                    <label>Phone Number (WhatsApp)</label>
+                    <input type="text" id="mPhone" class="form-control" required placeholder="03XXXXXXXXX">
+                </div>
+                <div class="form-group">
+                    <label>Admission Date</label>
+                    <input type="date" id="mAdmission" class="form-control" required onchange="autoSetExpiry()">
+                </div>
+                <div class="form-group">
+                    <label>Calculated Expiry Date</label>
+                    <input type="date" id="mExpiry" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Fee Paid (Rs)</label>
+                    <input type="number" id="mFeeAmount" class="form-control" required placeholder="e.g. 2000">
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="mPaymentMode" class="form-control">
                         <option value="Cash">Cash</option>
-                        <option value="Online">Online</option>
+                        <option value="Online">Online (JazzCash/Bank)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-danger btn-block">Record Expense</button>
+                <button type="submit" class="btn-primary">Save Member & Record Payment</button>
             </form>
         </div>
+
     </div>
 
     <script src="app.js"></script>
