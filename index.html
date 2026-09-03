@@ -3,206 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAISAL GYM - Management System</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>FAISAL GYM MANAGEMENT SYSTEM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #0d1117; --card: #161b22; --accent: #0066FF; --text: #f0f6fc; --border: #30363d; --danger: #da3633; --success: #238636; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 30px; }
+        header { background: var(--card); padding: 15px; text-align: center; border-bottom: 1px solid var(--border); }
+        header h1 { color: var(--accent); font-size: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .nav-tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab-btn { flex: 1; min-width: 100px; padding: 12px 5px; background: none; border: none; color: #8b949e; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: #1c2128; }
+        
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .section-box { display: none; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; }
+        .section-box.active { display: block; }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 5px; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 10px; background: #0d1117; border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 14px; }
+        
+        .btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-sec { background: #21262d; border: 1px solid var(--border); color: #fff; }
+        .btn-danger { background: var(--danger); }
+        
+        .camera-box { position: relative; width: 100%; height: 220px; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 10px; border: 1px solid var(--border); text-align: center; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        #capturedPreview { width: 100%; height: 100%; object-fit: cover; display: none; }
+        
+        .member-card { background: #0d1117; border: 1px solid var(--border); padding: 12px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .badge { background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        .status-active { color: #3fb950; font-size: 12px; font-weight: bold; }
+        .status-expired { color: #f85149; font-size: 12px; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-    <!-- Header -->
     <header>
-        <div class="logo-box">
-            <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Logo" class="gym-logo">
-            <h1>FAISAL <span>GYM</span></h1>
-        </div>
-        <div class="sys-status">
-            <div class="time-badge" id="liveClock">00:00:00 AM</div>
-            <div class="status-badge">System Ready</div>
-        </div>
+        <h1>Faisal Gym Management</h1>
     </header>
 
-    <!-- Navigation -->
     <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('attendanceTab', event)">Attendance</button>
-        <button class="tab-btn" onclick="switchTab('logsTab', event)">Logs</button>
-        <button class="tab-btn" onclick="switchTab('membersTab', event)">Members</button>
-        <button class="tab-btn" onclick="switchTab('financeTab', event)">Finance</button>
-        <button class="tab-btn" onclick="switchTab('addTab', event)">Add Member</button>
+        <button class="tab-btn active" onclick="switchTab('addTab', event)"><i class="fa-solid fa-user-plus"></i><br>Add Member</button>
+        <button class="tab-btn" onclick="switchTab('attendanceTab', event)"><i class="fa-solid fa-camera"></i><br>Attendance</button>
+        <button class="tab-btn" onclick="switchTab('membersTab', event)"><i class="fa-solid fa-users"></i><br>Members</button>
     </div>
 
     <div class="container">
-
-        <!-- Analytics Overview -->
-        <div class="dash-cards">
-            <div class="card" onclick="switchTab('membersTab', event)">
-                <h2 id="totalActiveCount">0</h2>
-                <p>Active Members</p>
-            </div>
-            <div class="card" onclick="switchTab('logsTab', event)">
-                <h2 id="todayAttendanceCount">0</h2>
-                <p>Today Attendance</p>
-            </div>
-            <div class="card overdue" onclick="switchTab('membersTab', event)">
-                <h2 id="feeOverdueCount">0</h2>
-                <p>Fee Overdue</p>
-            </div>
-        </div>
-
-        <!-- 1. Attendance Tab -->
-        <div id="attendanceTab" class="section-box active">
-            <div class="section-title">
-                <span><i class="fa-solid fa-camera"></i> Face Scanner / Quick Attendance</span>
-                <span class="cam-status-label">Environment Cam Active</span>
-            </div>
-            <div class="camera-container">
-                <video id="webcam" autoplay playsinline></video>
-                <div class="cam-overlay">📷 Live Scanner</div>
-            </div>
-            
-            <div class="quick-input-group">
-                <input type="text" id="attendanceInput" class="form-control" placeholder="Enter ID (e.g. FG-101) or Phone...">
-                <button class="btn-primary" onclick="markAutoAttendance()">Mark Attendance</button>
-            </div>
-            <div id="attendanceAlert" class="alert-box hidden"></div>
-        </div>
-
-        <!-- 2. Logs Tab -->
-        <div id="logsTab" class="section-box">
-            <div class="section-title">Today's Entry Log</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>ID</th>
-                            <th>Member</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTableBody">
-                        <!-- Dynamic logs -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 3. Members List Tab -->
-        <div id="membersTab" class="section-box">
-            <div class="section-title">Registered Members</div>
-            <div class="form-group">
-                <input type="text" id="searchBar" class="form-control" placeholder="Search by ID, Name, or Phone..." onkeyup="filterMembers()">
-            </div>
-            <div id="membersList">
-                <!-- Dynamic Member Cards -->
-            </div>
-        </div>
-
-        <!-- 4. Financial & Expense Tab -->
-        <div id="financeTab" class="section-box">
-            <div class="section-title">Daily Financial Overview</div>
-            <div class="finance-grid">
-                <div class="fin-card">
-                    <span>Cash Collected Today</span>
-                    <h4 id="todayCash">Rs. 0</h4>
-                </div>
-                <div class="fin-card">
-                    <span>Online Collected Today</span>
-                    <h4 id="todayOnline">Rs. 0</h4>
-                </div>
-                <div class="fin-card text-danger">
-                    <span>Total Expenses Today</span>
-                    <h4 id="todayExpenses">Rs. 0</h4>
-                </div>
-                <div class="fin-card highlight text-neon">
-                    <span>Net Profit Today</span>
-                    <h4 id="todayNetProfit">Rs. 0</h4>
-                </div>
-            </div>
-
-            <div style="margin-top:20px;">
-                <div class="section-title">Add Gym Expense</div>
-                <form id="expenseForm" onsubmit="addExpense(event)">
-                    <div class="form-group">
-                        <input type="text" id="expTitle" class="form-control" placeholder="Expense Title / Reason" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="number" id="expAmount" class="form-control" placeholder="Amount (Rs)" required>
-                    </div>
-                    <div class="form-group">
-                        <select id="expMode" class="form-control">
-                            <option value="Cash">Cash</option>
-                            <option value="Online">Online</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-danger-btn">Record Expense</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- 5. Add Member Tab -->
-        <div id="addTab" class="section-box">
-            <div class="section-title">New Member Registration</div>
+        
+        <!-- ADD MEMBER TAB -->
+        <div id="addTab" class="section-box active">
             <form id="addMemberForm" onsubmit="saveMember(event)">
-                <div class="form-group">
-                    <label>Auto-Assigned ID</label>
-                    <input type="text" id="mAutoId" class="form-control input-disabled" readonly>
+                
+                <div class="camera-box">
+                    <video id="memberCam" autoplay playsinline></video>
+                    <img id="capturedPreview" alt="Preview">
                 </div>
                 
-                <!-- Integrated Member Photo Capture Field -->
-                <div class="form-group" style="margin-top: 15px;">
-                    <label style="display: block; margin-bottom: 8px;">Member Face Capture / Photo</label>
-                    
-                    <div style="background: #000; border-radius: 8px; overflow: hidden; text-align: center; margin-bottom: 10px; border: 1px solid rgba(0, 102, 255, 0.4);">
-                        <video id="memberCam" autoplay playsinline style="width: 100%; max-height: 220px; object-fit: cover; display: block;"></video>
-                        <canvas id="memberCanvas" style="width: 100%; max-height: 220px; object-fit: cover; display: none;"></canvas>
-                        <img id="capturedPreview" style="width: 100%; max-height: 220px; object-fit: cover; display: none; border-radius: 8px;">
-                    </div>
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <button type="button" id="btnCapturePhoto" class="btn" onclick="captureMemberPhoto()">Take Photo</button>
+                    <button type="button" id="btnOpenRegCam" class="btn btn-sec" onclick="startRegistrationCamera()" style="display:none;">Retake Photo</button>
+                </div>
 
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <button type="button" id="btnCapturePhoto" class="btn-primary" style="background: #28a745;" onclick="captureMemberPhoto()">
-                            <i class="fa-solid fa-camera"></i> Capture Photo
-                        </button>
-                        <button type="button" id="btnOpenRegCam" class="btn-primary" style="background: #ffc107; color: #000; display: none;" onclick="startRegistrationCamera()">
-                            <i class="fa-solid fa-rotate-right"></i> Retake Photo
-                        </button>
-                    </div>
-                    <input type="hidden" id="mPhotoData">
+                <input type="hidden" id="mPhotoData">
+
+                <div class="form-group">
+                    <label>Auto Member ID</label>
+                    <input type="text" id="mAutoId" class="form-control" readonly style="color:#3fb950; font-weight:bold;">
                 </div>
 
                 <div class="form-group">
                     <label>Full Name</label>
-                    <input type="text" id="mName" class="form-control" required placeholder="Enter member name">
-                </div>
-                <div class="form-group">
-                    <label>Phone Number (WhatsApp)</label>
-                    <input type="text" id="mPhone" class="form-control" required placeholder="03XXXXXXXXX">
-                </div>
-                <div class="form-group">
-                    <label>Admission Date</label>
-                    <input type="date" id="mAdmission" class="form-control" required onchange="autoSetExpiry()">
-                </div>
-                <div class="form-group">
-                    <label>Calculated Expiry Date</label>
-                    <input type="date" id="mExpiry" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Fee Paid (Rs)</label>
-                    <input type="number" id="mFeeAmount" class="form-control" required placeholder="e.g. 2000">
-                </div>
-                <div class="form-group">
-                    <label>Payment Method</label>
-                    <select id="mPaymentMode" class="form-control">
-                        <option value="Cash">Cash</option>
-                        <option value="Online">Online (JazzCash/Bank)</option>
-                    </select>
+                    <input type="text" id="mName" class="form-control" placeholder="Enter Member Name" required>
                 </div>
 
-                <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Member & Record Payment</button>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="mPhone" class="form-control" placeholder="03XXXXXXXXX" required>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Admission Date</label>
+                        <input type="date" id="mAdmission" class="form-control" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Expiry Date</label>
+                        <input type="date" id="mExpiry" class="form-control" required>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Fee Amount (RS)</label>
+                        <input type="number" id="mFeeAmount" class="form-control" value="2000" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Payment Mode</label>
+                        <select id="mPaymentMode" class="form-control">
+                            <option value="Cash">Cash</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" style="background:var(--success);">Save Member</button>
             </form>
+        </div>
+
+        <!-- ATTENDANCE TAB -->
+        <div id="attendanceTab" class="section-box">
+            <h3 style="margin-bottom:10px; font-size:16px;">Scan Face / Attendance Camera</h3>
+            <div class="camera-box">
+                <video id="webcam" autoplay playsinline></video>
+            </div>
+            <p style="text-align:center; color:#8b949e; font-size:12px;">Camera active for live recognition.</p>
+        </div>
+
+        <!-- MEMBERS LIST TAB -->
+        <div id="membersTab" class="section-box">
+            <h3 style="margin-bottom:15px; font-size:16px;">Registered Members</h3>
+            <div id="membersList"></div>
         </div>
 
     </div>
 
-    <script src="app.js"></script>
+    <canvas id="memberCanvas" style="display:none;"></canvas>
+
+    <!-- Cache Bypassing Script Link -->
+    <script>
+        var script = document.createElement('script');
+        script.src = 'app.js?v=' + Date.now();
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>
