@@ -7,6 +7,7 @@ let logs = JSON.parse(localStorage.getItem('fg_logs')) || [];
 let expenses = JSON.parse(localStorage.getItem('fg_expenses')) || [];
 let payments = JSON.parse(localStorage.getItem('fg_payments')) || [];
 let recycledIds = JSON.parse(localStorage.getItem('fg_recycled_ids')) || [];
+let regCameraStream = null;
 
 // Live Clock
 function updateClock() {
@@ -26,7 +27,12 @@ function switchTab(tabId, evt) {
     }
     document.getElementById(tabId).classList.add('active');
 
-    if (tabId === 'attendanceTab') startBackCamera();
+    if (tabId === 'attendanceTab') {
+        startBackCamera();
+        stopRegistrationCamera();
+    } else {
+        stopRegistrationCamera();
+    }
 }
 
 // Forced Back Camera (Original Preserved)
@@ -43,6 +49,59 @@ async function startBackCamera() {
         } catch(e) {
             console.log("Camera access denied or missing");
         }
+    }
+}
+
+// --- Registration Camera Functions (Face Capture) ---
+async function startRegistrationCamera() {
+    try {
+        const video = document.getElementById('memberCam');
+        const previewImg = document.getElementById('capturedPreview');
+        const canvas = document.getElementById('memberCanvas');
+        
+        previewImg.style.display = 'none';
+        canvas.style.display = 'none';
+
+        regCameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" }
+        });
+        
+        video.srcObject = regCameraStream;
+        video.style.display = 'block';
+        document.getElementById('btnCapturePhoto').style.display = 'inline-block';
+        document.getElementById('btnOpenRegCam').innerText = 'Retake Photo';
+    } catch (err) {
+        alert("Camera access fail ho gaya hai. Permission allow karein.");
+    }
+}
+
+function captureMemberPhoto() {
+    const video = document.getElementById('memberCam');
+    const canvas = document.getElementById('memberCanvas');
+    const previewImg = document.getElementById('capturedPreview');
+    const context = canvas.getContext('2d');
+
+    if (!video.videoWidth) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const photoBase64 = canvas.toDataURL('image/jpeg');
+    document.getElementById('mPhotoData').value = photoBase64;
+
+    previewImg.src = photoBase64;
+    previewImg.style.display = 'block';
+    video.style.display = 'none';
+    document.getElementById('btnCapturePhoto').style.display = 'none';
+
+    stopRegistrationCamera();
+}
+
+function stopRegistrationCamera() {
+    if (regCameraStream) {
+        regCameraStream.getTracks().forEach(track => track.stop());
+        regCameraStream = null;
     }
 }
 
@@ -104,8 +163,9 @@ function saveMember(e) {
     const expiry = document.getElementById('mExpiry').value;
     const feeAmount = parseFloat(document.getElementById('mFeeAmount').value) || 0;
     const paymentMode = document.getElementById('mPaymentMode').value;
+    const photo = document.getElementById('mPhotoData').value || '';
 
-    members.push({ id, name, phone, admissionDate, expiry });
+    members.push({ id, name, phone, admissionDate, expiry, photo });
     localStorage.setItem('fg_members', JSON.stringify(members));
 
     // Record Payment
@@ -119,7 +179,15 @@ function saveMember(e) {
     localStorage.setItem('fg_payments', JSON.stringify(payments));
 
     alert(`Member Registered Successfully! ID: ${id}`);
+    
+    // Reset Form UI
     document.getElementById('addMemberForm').reset();
+    document.getElementById('mPhotoData').value = '';
+    document.getElementById('capturedPreview').style.display = 'none';
+    document.getElementById('memberCam').style.display = 'none';
+    document.getElementById('btnOpenRegCam').innerText = 'Open Front Camera';
+    document.getElementById('btnCapturePhoto').style.display = 'none';
+
     initAddMemberForm();
     renderMembers();
     updateDashboard();
@@ -148,10 +216,18 @@ function renderMembers() {
         const isExpired = m.expiry < today;
         const card = document.createElement('div');
         card.className = 'member-card';
+        
+        const photoHtml = m.photo 
+            ? `<img src="${m.photo}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 2px solid #0066FF;">`
+            : `<div style="width: 45px; height: 45px; border-radius: 50%; background: #161b22; border: 1px solid #0066FF; display: inline-flex; align-items: center; justify-content: center; margin-right: 12px; color: #888;"><i class="fa-solid fa-user"></i></div>`;
+
         card.innerHTML = `
-            <div class="member-info">
-                <h4>${m.name} <span class="badge">${m.id}</span></h4>
-                <p>Phone: ${m.phone} | Expiry: ${m.expiry}</p>
+            <div style="display: flex; align-items: center;">
+                ${photoHtml}
+                <div class="member-info">
+                    <h4>${m.name} <span class="badge">${m.id}</span></h4>
+                    <p>Phone: ${m.phone} | Expiry: ${m.expiry}</p>
+                </div>
             </div>
             <div style="text-align:right;">
                 <span class="${isExpired ? 'status-expired' : 'status-active'}">
@@ -191,7 +267,7 @@ function markAutoAttendance() {
     if (query) {
         targetMember = members.find(m => m.id === query || m.phone === query);
     } else {
-        targetMember = members[0]; // fallback to first member
+        targetMember = members[0];
     }
 
     if (!targetMember) {
