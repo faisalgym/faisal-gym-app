@@ -1,270 +1,277 @@
 /* ==========================================================================
-   FAISAL GYM - MANAGEMENT SYSTEM ENGINE (app.js)
-   Zero-Error Logic & Complete Business Rule Execution
+   FAISAL GYM ENGINE - FULL FUNCTIONAL & ZERO ERROR LOGIC
    ========================================================================== */
 
-// --- STATE MANAGEMENT & LOCAL STORAGE KEYS ---
-const STORAGE_KEYS = {
-    MEMBERS: 'faisal_gym_members',
-    EXPENSES: 'faisal_gym_expenses',
-    PAYMENTS: 'faisal_gym_payments',
-    ATTENDANCE: 'faisal_gym_attendance',
-    DELETED_IDS: 'faisal_gym_recycled_ids'
-};
+let members = JSON.parse(localStorage.getItem('fg_members')) || [];
+let logs = JSON.parse(localStorage.getItem('fg_logs')) || [];
+let expenses = JSON.parse(localStorage.getItem('fg_expenses')) || [];
+let payments = JSON.parse(localStorage.getItem('fg_payments')) || [];
+let recycledIds = JSON.parse(localStorage.getItem('fg_recycled_ids')) || [];
 
-let members = JSON.parse(localStorage.getItem(STORAGE_KEYS.MEMBERS)) || [];
-let expenses = JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES)) || [];
-let payments = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENTS)) || [];
-let attendanceLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.ATTENDANCE)) || [];
-let recycledIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.DELETED_IDS)) || [];
+// Live Clock
+function updateClock() {
+    const now = new Date();
+    document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-let currentFilter = 'all';
+// Switch Tabs
+function switchTab(tabId, evt) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.section-box').forEach(sec => sec.classList.remove('active'));
+    
+    if (evt && evt.target) {
+        evt.target.classList.add('active');
+    }
+    document.getElementById(tabId).classList.add('active');
 
-// --- INITIALIZATION ON LOAD ---
-document.addEventListener('DOMContentLoaded', () => {
-    checkAndRecycleInactiveIds();
-    renderDashboard();
-    renderMemberList();
-    updateFinanceSummary();
-});
+    if (tabId === 'attendanceTab') startBackCamera();
+}
 
-// --- AUDIO FEEDBACK GENERATOR (Web Audio API) ---
-function playBeepSound(type = 'success') {
+// Forced Back Camera (Original Preserved)
+async function startBackCamera() {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        if (type === 'success') {
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 tone
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.15);
-        } else {
-            // Overdue Warning Tone
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.35);
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "environment" } }
+        });
+        document.getElementById('webcam').srcObject = stream;
+    } catch (err) {
+        try {
+            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('webcam').srcObject = fallbackStream;
+        } catch(e) {
+            console.log("Camera access denied or missing");
         }
-    } catch (e) {
-        console.log("Audio play blocked by browser interaction rules.");
     }
 }
 
-// --- POINT 6: AUTO ID GENERATION & RECYCLING LOGIC ---
-function getNextAutoId() {
+// Web Audio Beep Signal
+function playAudioFeedback(type) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'success') {
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, ctx.currentTime);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+        }
+    } catch(e){}
+}
+
+// Smart Auto-ID & Recycling Logic
+function generateAutoId() {
     if (recycledIds.length > 0) {
         recycledIds.sort((a, b) => a - b);
         const recycledNum = recycledIds.shift();
-        localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify(recycledIds));
+        localStorage.setItem('fg_recycled_ids', JSON.stringify(recycledIds));
         return `FG-${recycledNum}`;
     }
-    
     let maxId = 100;
     members.forEach(m => {
-        const idNum = parseInt(m.autoId.replace('FG-', ''));
-        if (!isNaN(idNum) && idNum > maxId) {
-            maxId = idNum;
-        }
+        const num = parseInt((m.id || '').replace('FG-', ''));
+        if (!isNaN(num) && num > maxId) maxId = num;
     });
     return `FG-${maxId + 1}`;
 }
 
-// --- POINT 6: 3-MONTH INACTIVE AUTO ID RECYCLING CHECK ---
-function checkAndRecycleInactiveIds() {
-    const today = new Date();
-    const activeMembers = [];
+function autoSetExpiry() {
+    const admission = document.getElementById('mAdmission').value;
+    if (!admission) return;
+    const date = new Date(admission);
+    date.setMonth(date.getMonth() + 1);
+    document.getElementById('mExpiry').value = date.toISOString().split('T')[0];
+}
+
+// Save Member
+function saveMember(e) {
+    e.preventDefault();
+    const id = document.getElementById('mAutoId').value || generateAutoId();
+    const name = document.getElementById('mName').value.trim();
+    const phone = document.getElementById('mPhone').value.trim();
+    const admissionDate = document.getElementById('mAdmission').value;
+    const expiry = document.getElementById('mExpiry').value;
+    const feeAmount = parseFloat(document.getElementById('mFeeAmount').value) || 0;
+    const paymentMode = document.getElementById('mPaymentMode').value;
+
+    members.push({ id, name, phone, admissionDate, expiry });
+    localStorage.setItem('fg_members', JSON.stringify(members));
+
+    // Record Payment
+    payments.push({
+        id: Date.now(),
+        memberId: id,
+        amount: feeAmount,
+        mode: paymentMode,
+        date: new Date().toISOString().split('T')[0]
+    });
+    localStorage.setItem('fg_payments', JSON.stringify(payments));
+
+    alert(`Member Registered Successfully! ID: ${id}`);
+    document.getElementById('addMemberForm').reset();
+    initAddMemberForm();
+    renderMembers();
+    updateDashboard();
+    updateFinanceSummary();
+}
+
+function initAddMemberForm() {
+    document.getElementById('mAutoId').value = generateAutoId();
+    document.getElementById('mAdmission').value = new Date().toISOString().split('T')[0];
+    autoSetExpiry();
+}
+
+// Render Members
+function renderMembers() {
+    const container = document.getElementById('membersList');
+    container.innerHTML = '';
+
+    const today = new Date().toISOString().split('T')[0];
+
+    if (members.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color:#8b949e; padding:15px;">No registered members found.</p>`;
+        return;
+    }
 
     members.forEach(m => {
-        const expDate = new Date(m.expiryDate);
-        const diffTime = today - expDate;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        // If inactive for more than 90 days (3 months), release ID
-        if (diffDays > 90) {
-            const idNum = parseInt(m.autoId.replace('FG-', ''));
-            if (!isNaN(idNum) && !recycledIds.includes(idNum)) {
-                recycledIds.push(idNum);
-            }
-        } else {
-            activeMembers.push(m);
-        }
+        const isExpired = m.expiry < today;
+        const card = document.createElement('div');
+        card.className = 'member-card';
+        card.innerHTML = `
+            <div class="member-info">
+                <h4>${m.name} <span class="badge">${m.id}</span></h4>
+                <p>Phone: ${m.phone} | Expiry: ${m.expiry}</p>
+            </div>
+            <div style="text-align:right;">
+                <span class="${isExpired ? 'status-expired' : 'status-active'}">
+                    ${isExpired ? 'EXPIRED' : 'ACTIVE'}
+                </span>
+                <br>
+                <button class="btn-success" style="margin-top:4px;" onclick="sendWhatsApp('${m.phone}', '${m.name}')">WhatsApp</button>
+                <button class="btn-delete" onclick="deleteMember('${m.id}')"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+        container.appendChild(card);
     });
-
-    members = activeMembers;
-    saveToStorage();
-    localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify(recycledIds));
 }
 
-// --- POINT 4: DATE EXPIRY CALCULATION ENGINE ---
-function calculateExpiryDate(startDateString) {
-    const date = new Date(startDateString);
-    date.setMonth(date.getMonth() + 1);
-    return date.toISOString().split('T')[0];
+// Filter Members
+function filterMembers() {
+    const query = document.getElementById('searchBar').value.toLowerCase();
+    const cards = document.querySelectorAll('.member-card');
+    cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(query) ? 'flex' : 'none';
+    });
 }
 
-function getMemberStatus(expiryDateStr) {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const today = new Date(todayStr);
-    const expiry = new Date(expiryDateStr);
-
-    // Expired starting the very next day after expiry date
-    if (today > expiry) {
-        return 'OVERDUE';
-    }
-    return 'ACTIVE';
-}
-
-// --- POINT 8: QUICK ATTENDANCE & VOICE/VISUAL ALERT ---
-function markAttendance() {
+// Quick Attendance & Voice/Visual Warning Alert
+function markAutoAttendance() {
     const input = document.getElementById('attendanceInput');
     const query = input.value.trim().toUpperCase();
     const alertBox = document.getElementById('attendanceAlert');
 
-    if (!query) return;
-
-    const member = members.find(m => m.autoId === query || m.phone === query);
-
-    if (!member) {
-        alertBox.className = 'alert-box alert-danger';
-        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Member ID/Phone not found!`;
-        alertBox.classList.remove('hidden');
-        playBeepSound('warning');
+    if (members.length === 0) {
+        alert("Pehle kisi member ko add karein.");
         return;
     }
 
-    const status = getMemberStatus(member.expiryDate);
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    // Log attendance
-    attendanceLogs.push({
-        autoId: member.autoId,
-        name: member.name,
-        date: todayStr,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    });
-    localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendanceLogs));
-
-    if (status === 'ACTIVE') {
-        alertBox.className = 'alert-box alert-success';
-        alertBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> Attendance Marked: <strong>${member.name}</strong> (${member.autoId}) - Status: Fee Paid`;
-        playBeepSound('success');
+    let targetMember = null;
+    if (query) {
+        targetMember = members.find(m => m.id === query || m.phone === query);
     } else {
+        targetMember = members[0]; // fallback to first member
+    }
+
+    if (!targetMember) {
         alertBox.className = 'alert-box alert-danger';
-        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Attendance Marked: <strong>${member.name}</strong> (${member.autoId}) - <span style="text-decoration: underline;">FEE OVERDUE!</span>`;
-        playBeepSound('warning');
+        alertBox.innerText = 'Member Not Found!';
+        alertBox.classList.remove('hidden');
+        playAudioFeedback('warning');
+        return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const time = new Date().toLocaleTimeString();
+    const isExpired = targetMember.expiry < today;
+
+    logs.unshift({ time, id: targetMember.id, name: targetMember.name, status: isExpired ? 'OVERDUE' : 'Present' });
+    localStorage.setItem('fg_logs', JSON.stringify(logs));
+
+    if (isExpired) {
+        alertBox.className = 'alert-box alert-danger';
+        alertBox.innerHTML = `⚠️ Fee Overdue! ${targetMember.name} (${targetMember.id})`;
+        playAudioFeedback('warning');
+    } else {
+        alertBox.className = 'alert-box alert-success';
+        alertBox.innerHTML = `✅ Attendance Marked: ${targetMember.name} (${targetMember.id})`;
+        playAudioFeedback('success');
     }
 
     alertBox.classList.remove('hidden');
     input.value = '';
-    renderDashboard();
-    if (currentFilter === 'today') renderMemberList();
+    renderLogs();
+    updateDashboard();
 }
 
-// --- POINT 1 & REGISTRATION: MEMBER ADDITION ---
-function openAddMemberModal() {
-    document.getElementById('newAutoId').value = getNextAutoId();
-    document.getElementById('newAdmissionDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('addMemberModal').classList.remove('hidden');
+// Delete Member & Recycle ID
+function deleteMember(id) {
+    if (!confirm(`Are you sure you want to delete ${id}? Its ID will be recycled.`)) return;
+
+    const num = parseInt(id.replace('FG-', ''));
+    if (!isNaN(num) && !recycledIds.includes(num)) {
+        recycledIds.push(num);
+        localStorage.setItem('fg_recycled_ids', JSON.stringify(recycledIds));
+    }
+
+    members = members.filter(m => m.id !== id);
+    localStorage.setItem('fg_members', JSON.stringify(members));
+
+    renderMembers();
+    updateDashboard();
+    initAddMemberForm();
 }
 
-function closeAddMemberModal() {
-    document.getElementById('addMemberModal').classList.add('hidden');
-}
-
-function handleAddMember(e) {
+// Finance & Expenses
+function addExpense(e) {
     e.preventDefault();
-
-    const autoId = document.getElementById('newAutoId').value;
-    const name = document.getElementById('newName').value.trim();
-    const phone = document.getElementById('newPhone').value.trim();
-    const photo = document.getElementById('newPhoto').value.trim() || 'https://via.placeholder.com/150';
-    const admissionDate = document.getElementById('newAdmissionDate').value;
-    const feeAmount = parseFloat(document.getElementById('newFeeAmount').value);
-    const paymentMode = document.getElementById('newPaymentMode').value;
-
-    const expiryDate = calculateExpiryDate(admissionDate);
-
-    const newMember = {
-        autoId,
-        name,
-        phone,
-        photo,
-        admissionDate,
-        expiryDate,
-        pendingBalance: 0
-    };
-
-    const paymentRecord = {
-        id: Date.now(),
-        autoId,
-        memberName: name,
-        amount: feeAmount,
-        mode: paymentMode,
-        date: new Date().toISOString().split('T')[0],
-        type: 'Fee Collection'
-    };
-
-    members.push(newMember);
-    payments.push(paymentRecord);
-
-    saveToStorage();
-    closeAddMemberModal();
-    renderDashboard();
-    renderMemberList();
-    updateFinanceSummary();
-    document.getElementById('addMemberForm').reset();
-    playBeepSound('success');
-}
-
-// --- POINT 10: EXPENSE TRACKER LOGIC ---
-function openAddExpenseModal() {
-    document.getElementById('addExpenseModal').classList.remove('hidden');
-}
-
-function closeAddExpenseModal() {
-    document.getElementById('addExpenseModal').classList.add('hidden');
-}
-
-function handleAddExpense(e) {
-    e.preventDefault();
-
     const title = document.getElementById('expTitle').value.trim();
-    const amount = parseFloat(document.getElementById('expAmount').value);
-    const mode = document.getElementById('expPaymentMode').value;
+    const amount = parseFloat(document.getElementById('expAmount').value) || 0;
+    const mode = document.getElementById('expMode').value;
 
-    const newExpense = {
+    expenses.push({
         id: Date.now(),
         title,
         amount,
         mode,
         date: new Date().toISOString().split('T')[0]
-    };
+    });
+    localStorage.setItem('fg_expenses', JSON.stringify(expenses));
 
-    expenses.push(newExpense);
-    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
-
-    closeAddExpenseModal();
+    document.getElementById('expenseForm').reset();
     updateFinanceSummary();
-    document.getElementById('addExpenseForm').reset();
-    playBeepSound('success');
+    alert('Expense Logged!');
 }
 
-// --- POINT 9 & 10: FINANCIAL SUMMARY & NET PROFIT ENGINE ---
 function updateFinanceSummary() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
-    const todayPayments = payments.filter(p => p.date === todayStr);
-    const todayCash = todayPayments.filter(p => p.mode === 'Cash').reduce((sum, p) => sum + p.amount, 0);
-    const todayOnline = todayPayments.filter(p => p.mode === 'Online').reduce((sum, p) => sum + p.amount, 0);
+    const todayPayments = payments.filter(p => p.date === today);
+    const todayCash = todayPayments.filter(p => p.mode === 'Cash').reduce((a, b) => a + b.amount, 0);
+    const todayOnline = todayPayments.filter(p => p.mode === 'Online').reduce((a, b) => a + b.amount, 0);
 
-    const todayExp = expenses.filter(e => e.date === todayStr).reduce((sum, e) => sum + e.amount, 0);
+    const todayExp = expenses.filter(e => e.date === today).reduce((a, b) => a + b.amount, 0);
     const netProfit = (todayCash + todayOnline) - todayExp;
 
     document.getElementById('todayCash').innerText = `Rs. ${todayCash.toLocaleString()}`;
@@ -273,153 +280,45 @@ function updateFinanceSummary() {
     document.getElementById('todayNetProfit').innerText = `Rs. ${netProfit.toLocaleString()}`;
 }
 
-// --- POINT 3: DASHBOARD CARDS & COUNTERS ---
-function renderDashboard() {
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    const activeCount = members.filter(m => getMemberStatus(m.expiryDate) === 'ACTIVE').length;
-    const overdueCount = members.filter(m => getMemberStatus(m.expiryDate) === 'OVERDUE').length;
-
-    const todayAttCount = attendanceLogs.filter(a => a.date === todayStr).length;
-
-    document.getElementById('countActive').innerText = activeCount;
-    document.getElementById('countToday').innerText = todayAttCount;
-    document.getElementById('countOverdue').innerText = overdueCount;
-}
-
-function filterMembers(type) {
-    currentFilter = type;
-    const titleMap = {
-        'active': 'Active Members List',
-        'today': 'Members Present Today',
-        'overdue': 'Fee Overdue Members',
-        'all': 'All Registered Members'
-    };
-    document.getElementById('listTitle').innerHTML = `<i class="fa-solid fa-users"></i> ${titleMap[type]}`;
-    renderMemberList();
-}
-
-function resetFilters() {
-    filterMembers('all');
-}
-
-// --- RENDERING MEMBER TABLE (WITH SEARCH & SOFT DELETE) ---
-function renderMemberList() {
-    const tbody = document.getElementById('memberTableBody');
+// Render Logs
+function renderLogs() {
+    const tbody = document.getElementById('logsTableBody');
     tbody.innerHTML = '';
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    let displayList = [...members];
-
-    if (currentFilter === 'active') {
-        displayList = displayList.filter(m => getMemberStatus(m.expiryDate) === 'ACTIVE');
-    } else if (currentFilter === 'overdue') {
-        displayList = displayList.filter(m => getMemberStatus(m.expiryDate) === 'OVERDUE');
-    } else if (currentFilter === 'today') {
-        const todayAttIds = attendanceLogs.filter(a => a.date === todayStr).map(a => a.autoId);
-        displayList = displayList.filter(m => todayAttIds.includes(m.autoId));
-    }
-
-    if (displayList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">No records found.</td></tr>`;
-        return;
-    }
-
-    displayList.forEach(m => {
-        const status = getMemberStatus(m.expiryDate);
-        const badgeClass = status === 'ACTIVE' ? 'badge-active' : 'badge-overdue';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${m.autoId}</strong></td>
-            <td><img src="${m.photo}" class="member-thumb" alt="Member"></td>
-            <td>${m.name}</td>
-            <td>${m.phone}</td>
-            <td>${m.expiryDate}</td>
-            <td>Rs. ${m.pendingBalance || 0}</td>
-            <td><span class="badge ${badgeClass}">${status}</span></td>
-            <td>
-                <button class="btn btn-secondary" onclick="openProfileModal('${m.autoId}')" title="View Profile"><i class="fa-solid fa-eye"></i></button>
-                <button class="btn btn-danger" onclick="softDeleteMember('${m.autoId}')" title="Delete & Release ID"><i class="fa-solid fa-trash"></i></button>
-            </td>
+    logs.forEach(log => {
+        const isOverdue = log.status === 'OVERDUE';
+        tbody.innerHTML += `
+            <tr>
+                <td>${log.time}</td>
+                <td><strong>${log.id || '-'}</strong></td>
+                <td>${log.name}</td>
+                <td style="color:${isOverdue ? '#ff3366' : '#2ea043'}; font-weight:bold;">${log.status}</td>
+            </tr>
         `;
-        tbody.appendChild(tr);
     });
 }
 
-function searchMembers() {
-    const q = document.getElementById('searchMember').value.toLowerCase();
-    const rows = document.querySelectorAll('#memberTableBody tr');
-
-    rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(q) ? '' : 'none';
-    });
+// WhatsApp
+function sendWhatsApp(phone, name) {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const msg = encodeURIComponent(`Dear ${name}, your Faisal Gym fee is due. Please renew to continue your training.`);
+    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
 }
 
-// --- POINT 1 & 5: MEMBER PROFILE MODAL & BALANCE HISTORY ---
-function openProfileModal(autoId) {
-    const m = members.find(mem => mem.autoId === autoId);
-    if (!m) return;
+// Dashboard Analytics
+function updateDashboard() {
+    const today = new Date().toISOString().split('T')[0];
+    const activeCount = members.filter(m => m.expiry >= today).length;
+    const overdueCount = members.filter(m => m.expiry < today).length;
 
-    const memberPayments = payments.filter(p => p.autoId === autoId);
-    let payHistoryHtml = memberPayments.map(p => `
-        <li style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
-            ${p.date} - Rs. ${p.amount} (${p.mode})
-        </li>
-    `).join('');
-
-    const modalDetails = document.getElementById('profileDetails');
-    modalDetails.innerHTML = `
-        <div style="text-align: center; margin-bottom: 15px;">
-            <img src="${m.photo}" style="width: 90px; height: 90px; border-radius: 50%; border: 2px solid var(--primary-blue);" alt="Profile">
-            <h2 style="margin-top: 10px;">${m.name}</h2>
-            <p style="color: var(--neon-blue); font-weight: 700;">ID: ${m.autoId}</p>
-        </div>
-        <hr style="border-color: var(--border-glass); margin-bottom: 15px;">
-        <p><strong>WhatsApp:</strong> ${m.phone}</p>
-        <p><strong>Admission Date:</strong> ${m.admissionDate}</p>
-        <p><strong>Expiry Date:</strong> ${m.expiryDate}</p>
-        <p><strong>Pending Balance / Dues:</strong> <span style="color:var(--danger); font-weight:700;">Rs. ${m.pendingBalance || 0}</span></p>
-        
-        <h4 style="margin-top: 15px;">Payment History</h4>
-        <ul style="list-style: none; padding-left: 0;">${payHistoryHtml || '<li>No history found.</li>'}</ul>
-        
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <a href="https://wa.me/${m.phone}?text=Dear%20${encodeURIComponent(m.name)},%20your%20Faisal%20Gym%20fee%20is%20due.%20Please%20pay%20your%20dues." target="_blank" class="btn btn-success btn-block" style="text-decoration:none; text-align:center;">
-                <i class="fa-brands fa-whatsapp"></i> Send WhatsApp Reminder
-            </a>
-        </div>
-    `;
-
-    document.getElementById('profileModal').classList.remove('hidden');
+    document.getElementById('totalActiveCount').innerText = activeCount;
+    document.getElementById('feeOverdueCount').innerText = overdueCount;
+    document.getElementById('todayAttendanceCount').innerText = logs.length;
 }
 
-function closeProfileModal() {
-    document.getElementById('profileModal').classList.add('hidden');
-}
-
-// --- POINT 6: MANUAL SOFT DELETE & AUTO ID RECYCLING ---
-function softDeleteMember(autoId) {
-    if (!confirm(`Are you sure you want to delete ${autoId}? Its ID will be recycled for future members.`)) {
-        return;
-    }
-
-    const idNum = parseInt(autoId.replace('FG-', ''));
-    if (!isNaN(idNum) && !recycledIds.includes(idNum)) {
-        recycledIds.push(idNum);
-        localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify(recycledIds));
-    }
-
-    members = members.filter(m => m.autoId !== autoId);
-    saveToStorage();
-    renderDashboard();
-    renderMemberList();
-    playBeepSound('warning');
-}
-
-// --- STORAGE SAVE HELPERS ---
-function saveToStorage() {
-    localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
-    localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
-}
+// Initial Load
+startBackCamera();
+initAddMemberForm();
+renderMembers();
+renderLogs();
+updateDashboard();
+updateFinanceSummary();
