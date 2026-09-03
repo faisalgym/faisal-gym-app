@@ -1,5 +1,5 @@
 /* ==========================================================================
-   FAISAL GYM ENGINE - FULL FUNCTIONAL & ZERO ERROR LOGIC
+   FAISAL GYM ENGINE - FIXED CAMERA & AUTOMATIC ID LOGIC
    ========================================================================== */
 
 let members = JSON.parse(localStorage.getItem('fg_members')) || [];
@@ -7,98 +7,114 @@ let logs = JSON.parse(localStorage.getItem('fg_logs')) || [];
 let expenses = JSON.parse(localStorage.getItem('fg_expenses')) || [];
 let payments = JSON.parse(localStorage.getItem('fg_payments')) || [];
 let recycledIds = JSON.parse(localStorage.getItem('fg_recycled_ids')) || [];
-let regCameraStream = null;
+
+let activeStream = null;
 
 // Live Clock
 function updateClock() {
-    const now = new Date();
-    document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+    const clockEl = document.getElementById('liveClock');
+    if (clockEl) {
+        clockEl.innerText = new Date().toLocaleTimeString();
+    }
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// Switch Tabs
+// Stop any active camera stream before opening a new one
+function stopCurrentStream() {
+    if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
+        activeStream = null;
+    }
+}
+
+// Switch Tabs Smoothly
 function switchTab(tabId, evt) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.section-box').forEach(sec => sec.classList.remove('active'));
     
-    if (evt && evt.target) {
+    if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+    } else if (evt && evt.target) {
         evt.target.classList.add('active');
     }
-    document.getElementById(tabId).classList.add('active');
+
+    const targetSec = document.getElementById(tabId);
+    if (targetSec) targetSec.classList.add('active');
+
+    // Stop existing camera to free up hardware
+    stopCurrentStream();
 
     if (tabId === 'attendanceTab') {
-        startBackCamera();
-        stopRegistrationCamera();
+        startCameraFor('webcam');
     } else if (tabId === 'addTab') {
-        startRegistrationCamera();
-    } else {
-        stopRegistrationCamera();
+        initAddMemberForm();
+        startCameraFor('memberCam');
     }
 }
 
-// Forced Back Camera (For Attendance)
-async function startBackCamera() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } }
-        });
-        document.getElementById('webcam').srcObject = stream;
-    } catch (err) {
-        try {
-            const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment" }
-            });
-            document.getElementById('webcam').srcObject = fallbackStream;
-        } catch(e) {
-            console.log("Camera access denied or missing");
-        }
-    }
-}
+// Generic Robust Camera Launcher (Handles Mobile Compatibility & Avoids Crashing)
+async function startCameraFor(videoElementId) {
+    const video = document.getElementById(videoElementId);
+    if (!video) return;
 
-// --- Registration Camera Functions (Back Camera) ---
-async function startRegistrationCamera() {
-    try {
-        const video = document.getElementById('memberCam');
-        const previewImg = document.getElementById('capturedPreview');
-        const canvas = document.getElementById('memberCanvas');
-        
-        previewImg.style.display = 'none';
-        canvas.style.display = 'none';
-        video.style.display = 'block';
+    // Reset video UI
+    video.style.display = 'block';
 
-        // Force Back Camera
+    const constraints = [
+        { video: { facingMode: "environment" } },
+        { video: { facingMode: "user" } },
+        { video: true }
+    ];
+
+    for (let config of constraints) {
         try {
-            regCameraStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" } }
-            });
+            const stream = await navigator.mediaDevices.getUserMedia(config);
+            stopCurrentStream(); // Stop old stream
+            activeStream = stream;
+            video.srcObject = stream;
+            await video.play();
+            break; // Camera successfully started
         } catch (e) {
-            regCameraStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment" }
-            });
+            console.log("Camera constraint failed, trying next...", e);
         }
-        
-        video.srcObject = regCameraStream;
-        document.getElementById('btnCapturePhoto').style.display = 'inline-block';
-        document.getElementById('btnOpenRegCam').style.display = 'none';
-    } catch (err) {
-        console.log("Registration Camera error: ", err);
     }
+}
+
+// Registration Camera Actions
+function startRegistrationCamera() {
+    const video = document.getElementById('memberCam');
+    const previewImg = document.getElementById('capturedPreview');
+    const canvas = document.getElementById('memberCanvas');
+    
+    if (previewImg) previewImg.style.display = 'none';
+    if (canvas) canvas.style.display = 'none';
+    if (video) video.style.display = 'block';
+
+    document.getElementById('btnCapturePhoto').style.display = 'inline-block';
+    document.getElementById('btnOpenRegCam').style.display = 'none';
+
+    startCameraFor('memberCam');
 }
 
 function captureMemberPhoto() {
     const video = document.getElementById('memberCam');
     const canvas = document.getElementById('memberCanvas');
     const previewImg = document.getElementById('capturedPreview');
+
+    if (!video || !canvas || !previewImg) return;
+
+    // Fallback dimensions if video width not ready
+    const width = video.videoWidth || 320;
+    const height = video.videoHeight || 240;
+
+    canvas.width = width;
+    canvas.height = height;
+
     const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, width, height);
 
-    if (!video.videoWidth) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const photoBase64 = canvas.toDataURL('image/jpeg');
+    const photoBase64 = canvas.toDataURL('image/jpeg', 0.8);
     document.getElementById('mPhotoData').value = photoBase64;
 
     previewImg.src = photoBase64;
@@ -108,17 +124,10 @@ function captureMemberPhoto() {
     document.getElementById('btnCapturePhoto').style.display = 'none';
     document.getElementById('btnOpenRegCam').style.display = 'inline-block';
 
-    stopRegistrationCamera();
+    stopCurrentStream();
 }
 
-function stopRegistrationCamera() {
-    if (regCameraStream) {
-        regCameraStream.getTracks().forEach(track => track.stop());
-        regCameraStream = null;
-    }
-}
-
-// Web Audio Beep Signal
+// Audio Feedback (Beep)
 function playAudioFeedback(type) {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -142,33 +151,48 @@ function playAudioFeedback(type) {
     } catch(e){}
 }
 
-// Smart Auto-ID & Recycling Logic
+// Auto-ID Logic (Recycled ID Priority)
 function generateAutoId() {
     if (recycledIds.length > 0) {
         recycledIds.sort((a, b) => a - b);
-        const recycledNum = recycledIds.shift();
-        localStorage.setItem('fg_recycled_ids', JSON.stringify(recycledIds));
+        const recycledNum = recycledIds[0]; // peek
         return `FG-${recycledNum}`;
     }
     let maxId = 100;
     members.forEach(m => {
-        const num = parseInt((m.id || '').replace('FG-', ''));
-        if (!isNaN(num) && num > maxId) maxId = num;
+        if (m.id) {
+            const num = parseInt(m.id.replace('FG-', ''));
+            if (!isNaN(num) && num > maxId) maxId = num;
+        }
     });
     return `FG-${maxId + 1}`;
 }
 
 function autoSetExpiry() {
-    const admission = document.getElementById('mAdmission').value;
-    if (!admission) return;
-    const date = new Date(admission);
+    const admissionInput = document.getElementById('mAdmission');
+    const expiryInput = document.getElementById('mExpiry');
+    if (!admissionInput || !expiryInput || !admissionInput.value) return;
+
+    const date = new Date(admissionInput.value);
     date.setMonth(date.getMonth() + 1);
-    document.getElementById('mExpiry').value = date.toISOString().split('T')[0];
+    expiryInput.value = date.toISOString().split('T')[0];
 }
 
-// Save Member
+function initAddMemberForm() {
+    const autoIdInput = document.getElementById('mAutoId');
+    const admissionInput = document.getElementById('mAdmission');
+
+    if (autoIdInput) autoIdInput.value = generateAutoId();
+    if (admissionInput) {
+        admissionInput.value = new Date().toISOString().split('T')[0];
+        autoSetExpiry();
+    }
+}
+
+// Save Member Form
 function saveMember(e) {
     e.preventDefault();
+
     const id = document.getElementById('mAutoId').value || generateAutoId();
     const name = document.getElementById('mName').value.trim();
     const phone = document.getElementById('mPhone').value.trim();
@@ -178,10 +202,16 @@ function saveMember(e) {
     const paymentMode = document.getElementById('mPaymentMode').value;
     const photo = document.getElementById('mPhotoData').value || '';
 
+    // If used a recycled ID, remove it from list now
+    if (recycledIds.length > 0 && id === `FG-${recycledIds[0]}`) {
+        recycledIds.shift();
+        localStorage.setItem('fg_recycled_ids', JSON.stringify(recycledIds));
+    }
+
     members.push({ id, name, phone, admissionDate, expiry, photo });
     localStorage.setItem('fg_members', JSON.stringify(members));
 
-    // Record Payment
+    // Payment History
     payments.push({
         id: Date.now(),
         memberId: id,
@@ -191,29 +221,28 @@ function saveMember(e) {
     });
     localStorage.setItem('fg_payments', JSON.stringify(payments));
 
-    alert(`Member Registered Successfully! ID: ${id}`);
-    
-    // Reset Form UI
+    alert(`Member Registered Successfully!\nID: ${id}`);
+
+    // Reset Form
     document.getElementById('addMemberForm').reset();
     document.getElementById('mPhotoData').value = '';
-    document.getElementById('capturedPreview').style.display = 'none';
     
-    initAddMemberForm();
+    const previewImg = document.getElementById('capturedPreview');
+    if (previewImg) previewImg.style.display = 'none';
+
     renderMembers();
     updateDashboard();
     updateFinanceSummary();
+
+    // Reload camera and new ID for next entry
+    initAddMemberForm();
     startRegistrationCamera();
 }
 
-function initAddMemberForm() {
-    document.getElementById('mAutoId').value = generateAutoId();
-    document.getElementById('mAdmission').value = new Date().toISOString().split('T')[0];
-    autoSetExpiry();
-}
-
-// Render Members
+// Render Members List
 function renderMembers() {
     const container = document.getElementById('membersList');
+    if (!container) return;
     container.innerHTML = '';
 
     const today = new Date().toISOString().split('T')[0];
@@ -227,7 +256,7 @@ function renderMembers() {
         const isExpired = m.expiry < today;
         const card = document.createElement('div');
         card.className = 'member-card';
-        
+
         const photoHtml = m.photo 
             ? `<img src="${m.photo}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 2px solid #0066FF;">`
             : `<div style="width: 45px; height: 45px; border-radius: 50%; background: #161b22; border: 1px solid #0066FF; display: inline-flex; align-items: center; justify-content: center; margin-right: 12px; color: #888;"><i class="fa-solid fa-user"></i></div>`;
@@ -253,7 +282,7 @@ function renderMembers() {
     });
 }
 
-// Filter Members
+// Filter Search
 function filterMembers() {
     const query = document.getElementById('searchBar').value.toLowerCase();
     const cards = document.querySelectorAll('.member-card');
@@ -263,7 +292,7 @@ function filterMembers() {
     });
 }
 
-// Quick Attendance & Voice/Visual Warning Alert
+// Attendance Logic
 function markAutoAttendance() {
     const input = document.getElementById('attendanceInput');
     const query = input.value.trim().toUpperCase();
@@ -312,7 +341,7 @@ function markAutoAttendance() {
     updateDashboard();
 }
 
-// Delete Member & Recycle ID
+// Delete Member
 function deleteMember(id) {
     if (!confirm(`Are you sure you want to delete ${id}? Its ID will be recycled.`)) return;
 
@@ -330,7 +359,7 @@ function deleteMember(id) {
     initAddMemberForm();
 }
 
-// Finance & Expenses
+// Expenses & Finance
 function addExpense(e) {
     e.preventDefault();
     const title = document.getElementById('expTitle').value.trim();
@@ -361,15 +390,21 @@ function updateFinanceSummary() {
     const todayExp = expenses.filter(e => e.date === today).reduce((a, b) => a + b.amount, 0);
     const netProfit = (todayCash + todayOnline) - todayExp;
 
-    document.getElementById('todayCash').innerText = `Rs. ${todayCash.toLocaleString()}`;
-    document.getElementById('todayOnline').innerText = `Rs. ${todayOnline.toLocaleString()}`;
-    document.getElementById('todayExpenses').innerText = `Rs. ${todayExp.toLocaleString()}`;
-    document.getElementById('todayNetProfit').innerText = `Rs. ${netProfit.toLocaleString()}`;
+    const cashEl = document.getElementById('todayCash');
+    const onlineEl = document.getElementById('todayOnline');
+    const expEl = document.getElementById('todayExpenses');
+    const profitEl = document.getElementById('todayNetProfit');
+
+    if (cashEl) cashEl.innerText = `Rs. ${todayCash.toLocaleString()}`;
+    if (onlineEl) onlineEl.innerText = `Rs. ${todayOnline.toLocaleString()}`;
+    if (expEl) expEl.innerText = `Rs. ${todayExp.toLocaleString()}`;
+    if (profitEl) profitEl.innerText = `Rs. ${netProfit.toLocaleString()}`;
 }
 
-// Render Logs
+// Render Attendance Logs
 function renderLogs() {
     const tbody = document.getElementById('logsTableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
     logs.forEach(log => {
         const isOverdue = log.status === 'OVERDUE';
@@ -384,28 +419,34 @@ function renderLogs() {
     });
 }
 
-// WhatsApp
+// WhatsApp Link
 function sendWhatsApp(phone, name) {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const msg = encodeURIComponent(`Dear ${name}, your Faisal Gym fee is due. Please renew to continue your training.`);
     window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
 }
 
-// Dashboard Analytics
+// Update Dashboard Numbers
 function updateDashboard() {
     const today = new Date().toISOString().split('T')[0];
     const activeCount = members.filter(m => m.expiry >= today).length;
     const overdueCount = members.filter(m => m.expiry < today).length;
 
-    document.getElementById('totalActiveCount').innerText = activeCount;
-    document.getElementById('feeOverdueCount').innerText = overdueCount;
-    document.getElementById('todayAttendanceCount').innerText = logs.length;
+    const actEl = document.getElementById('totalActiveCount');
+    const overEl = document.getElementById('feeOverdueCount');
+    const attEl = document.getElementById('todayAttendanceCount');
+
+    if (actEl) actEl.innerText = activeCount;
+    if (overEl) overEl.innerText = overdueCount;
+    if (attEl) attEl.innerText = logs.length;
 }
 
-// Initial Load
-startBackCamera();
-initAddMemberForm();
-renderMembers();
-renderLogs();
-updateDashboard();
-updateFinanceSummary();
+// Initial System Startup
+window.addEventListener('DOMContentLoaded', () => {
+    initAddMemberForm();
+    renderMembers();
+    renderLogs();
+    updateDashboard();
+    updateFinanceSummary();
+    startCameraFor('webcam');
+});
