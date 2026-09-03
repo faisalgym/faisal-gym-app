@@ -3,281 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Management System</title>
+    <title>FAISAL GYM - Management System</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="brand">
-                <i class="fa-solid fa-dumbbell"></i>
-                <h2>Gym Manager Pro</h2>
-            </div>
-            <nav class="nav-menu">
-                <button class="nav-btn active" data-tab="dashboard">
-                    <i class="fa-solid fa-chart-line"></i> Dashboard
-                </button>
-                <button class="nav-btn" data-tab="members">
-                    <i class="fa-solid fa-users"></i> Members
-                </button>
-                <button class="nav-btn" data-tab="attendance">
-                    <i class="fa-solid fa-calendar-check"></i> Attendance
-                </button>
-                <button class="nav-btn" data-tab="fees">
-                    <i class="fa-solid fa-money-bill-wave"></i> Fee Records
-                </button>
-                <button class="nav-btn" data-tab="reports">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Reports
-                </button>
-            </nav>
-        </aside>
 
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Top Bar -->
-            <header class="top-bar">
-                <h1 id="page-title">Dashboard</h1>
-                <div class="user-profile">
-                    <span id="current-date"></span>
-                </div>
-            </header>
+    <!-- Header -->
+    <header>
+        <div class="logo-box">
+            <h1>FAISAL <span>GYM</span></h1>
+        </div>
+        <div class="sys-status">
+            <div class="time-badge" id="liveClock">00:00:00 AM</div>
+            <div class="status-badge">System Ready</div>
+        </div>
+    </header>
 
-            <!-- Dashboard Tab -->
-            <section id="dashboard-tab" class="tab-content active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <i class="fa-solid fa-users icon"></i>
-                        <div class="info">
-                            <h3>Total Members</h3>
-                            <p id="stat-total-members">0</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fa-solid fa-user-check icon"></i>
-                        <div class="info">
-                            <h3>Active Members</h3>
-                            <p id="stat-active-members">0</p>
-                        </div>
-                    </div>
-                    <div class="stat-card warning">
-                        <i class="fa-solid fa-clock icon"></i>
-                        <div class="info">
-                            <h3>Expiring Soon</h3>
-                            <p id="stat-expiring-members">0</p>
-                        </div>
-                    </div>
-                    <div class="stat-card danger">
-                        <i class="fa-solid fa-user-xmark icon"></i>
-                        <div class="info">
-                            <h3>Expired / Unpaid</h3>
-                            <p id="stat-expired-members">0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dashboard-tables">
-                    <div class="card">
-                        <h3>Recent Attendance Today</h3>
-                        <div class="table-responsive">
-                            <table class="data-table">
-                               <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Time</th>
-                                        <th>Status</th>
-                                        <th>Extra Days</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="today-attendance-list">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Members Tab -->
-            <section id="members-tab" class="tab-content">
-                <div class="action-bar">
-                    <input type="text" id="member-search" placeholder="Search by name or phone..." class="search-input">
-                    <button class="btn btn-primary" id="btn-add-member">
-                        <i class="fa-solid fa-plus"></i> Add New Member
-                    </button>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Photo</th>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Package</th>
-                                <th>Expiry Date</th>
-                                <th>Status</th>
-                                <th>Extra Days Used</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="members-table-body">
-                            <!-- Dynamic -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Attendance Tab -->
-            <section id="attendance-tab" class="tab-content">
-                <div class="attendance-container">
-                    <div class="card attendance-mark-box">
-                        <h3>Mark Daily Attendance</h3>
-                        <div class="form-group">
-                            <label>Select Member or Type ID/Name</label>
-                            <select id="attendance-member-select" class="form-control">
-                                <option value="">-- Choose Member --</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-success" id="btn-mark-attendance">
-                            <i class="fa-solid fa-check"></i> Mark Present
-                        </button>
-                    </div>
-
-                    <div class="card">
-                        <h3>Attendance Log</h3>
-                        <div class="table-responsive">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Member Name</th>
-                                        <th>Status</th>
-                                        <th>Extra Days After Expiry</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="full-attendance-log">
-                                    <!-- Dynamic -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Fee Records & Calendar Matrix Tab -->
-            <section id="fees-tab" class="tab-content">
-                <div class="card">
-                    <div class="card-header-flex">
-                        <h3>Monthly Fee Matrix Calendar</h3>
-                        <div class="year-selector">
-                            <label>Year: </label>
-                            <select id="matrix-year-select" class="form-control-sm"></select>
-                        </div>
-                    </div>
-                    <p class="section-desc">Track month-by-month fee payments for each member.</p>
-                    <div class="table-responsive">
-                        <table class="matrix-table" id="fee-matrix-table">
-                            <thead>
-                                <tr>
-                                    <th>Member Name</th>
-                                    <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th>
-                                    <th>May</th><th>Jun</th><th>Jul</th><th>Aug</th>
-                                    <th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
-                                </tr>
-                            </thead>
-                            <tbody id="fee-matrix-body">
-                                <!-- Dynamic Grid -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Reports Tab -->
-            <section id="reports-tab" class="tab-content">
-                <div class="card">
-                    <h3>Financial & Activity Summary</h3>
-                    <div class="reports-summary" id="reports-summary-box">
-                        <!-- Summary calculated dynamically -->
-                    </div>
-                </div>
-            </section>
-        </main>
+    <!-- Navigation -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('attendanceTab')">Attendance</button>
+        <button class="tab-btn" onclick="switchTab('logsTab')">Today Logs</button>
+        <button class="tab-btn" onclick="switchTab('membersTab')">Members</button>
+        <button class="tab-btn" onclick="switchTab('addTab')">Add Member</button>
     </div>
 
-    <!-- Add/Edit Member Modal -->
-    <div class="modal" id="member-modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2 id="modal-title">Add Member</h2>
-            <form id="member-form">
-                <input type="hidden" id="member-id">
+    <div class="container">
+
+        <!-- Analytics Overview -->
+        <div class="dash-cards">
+            <div class="card">
+                <h2 id="totalActiveCount">0</h2>
+                <p>Active Members</p>
+            </div>
+            <div class="card">
+                <h2 id="todayAttendanceCount">0</h2>
+                <p>Today Attendance</p>
+            </div>
+            <div class="card overdue">
+                <h2 id="feeOverdueCount">0</h2>
+                <p>Fee Overdue</p>
+            </div>
+        </div>
+
+        <!-- 1. Attendance Tab -->
+        <div id="attendanceTab" class="section-box active">
+            <div class="section-title">
+                <span>Face Scanner / Quick Attendance</span>
+                <span style="font-size: 0.75rem; color: #8b949e;">Back Camera Active</span>
+            </div>
+            <div class="camera-container">
+                <video id="webcam" autoplay playsinline></video>
+                <div class="cam-overlay">📷 Environment Cam</div>
+            </div>
+            <button class="btn-primary" onclick="markAutoAttendance()">Mark Attendance</button>
+        </div>
+
+        <!-- 2. Logs Tab -->
+        <div id="logsTab" class="section-box">
+            <div class="section-title">Today's Entry Log</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Member</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                    <!-- Logs inserted dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 3. Members List Tab -->
+        <div id="membersTab" class="section-box">
+            <div class="section-title">Registered Members</div>
+            <div class="form-group">
+                <input type="text" id="searchBar" class="form-control" placeholder="Search by ID (e.g. A1) or Name..." onkeyup="filterMembers()">
+            </div>
+            <div id="membersList">
+                <!-- Dynamic Member Cards -->
+            </div>
+        </div>
+
+        <!-- 4. Add Member Tab -->
+        <div id="addTab" class="section-box">
+            <div class="section-title">New Member Registration</div>
+            <form id="addMemberForm" onsubmit="saveMember(event)">
                 <div class="form-group">
                     <label>Full Name</label>
-                    <input type="text" id="member-name" required class="form-control">
+                    <input type="text" id="mName" class="form-control" required placeholder="Enter member name">
                 </div>
                 <div class="form-group">
-                    <label>Phone Number (WhatsApp)</label>
-                    <input type="text" id="member-phone" placeholder="923001234567" required class="form-control">
+                    <label>Phone Number</label>
+                    <input type="text" id="mPhone" class="form-control" required placeholder="03XXXXXXXXX">
                 </div>
                 <div class="form-group">
-                    <label>Package Plan</label>
-                    <select id="member-package" class="form-control">
-                        <option value="1 Month">1 Month</option>
-                        <option value="3 Months">3 Months</option>
-                        <option value="6 Months">6 Months</option>
-                        <option value="12 Months">12 Months</option>
-                    </select>
+                    <label>Fee Expiry Date</label>
+                    <input type="date" id="mExpiry" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label>Fee Amount (PKR)</label>
-                    <input type="number" id="member-fee" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>Joining / Start Date</label>
-                    <input type="date" id="member-start-date" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>Expiry Date</label>
-                    <input type="date" id="member-expiry-date" required class="form-control">
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn btn-primary">Save Member</button>
-                </div>
+                <button type="submit" class="btn-primary">Save Member</button>
             </form>
         </div>
-    </div>
 
-    <!-- Pay Fee Modal -->
-    <div class="modal" id="fee-modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Record Fee Payment</h2>
-            <form id="fee-form">
-                <input type="hidden" id="fee-member-id">
-                <div class="form-group">
-                    <label>Member</label>
-                    <input type="text" id="fee-member-name" readonly class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>Payment For Month</label>
-                    <input type="month" id="fee-month" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>Amount Received (PKR)</label>
-                    <input type="number" id="fee-amount" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>New Expiry Date</label>
-                    <input type="date" id="fee-new-expiry" required class="form-control">
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn btn-success">Record Payment & Notify WhatsApp</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <script src="app.js"></script>
