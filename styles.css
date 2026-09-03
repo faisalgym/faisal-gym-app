@@ -1,97 +1,248 @@
-/* Reset & Base Styles */
+/* Modern Dark Theme Styling */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-
 body {
-    background-color: #121212;
-    color: #ffffff;
-    line-height: 1.6;
+    background-color: #0d1117;
+    color: #c9d1d9;
+    padding-bottom: 30px;
 }
 
-/* Header & Navigation */
+/* Header & Clock */
 header {
-    background-color: #1f1f1f;
-    padding: 1rem 2rem;
+    background-color: #161b22;
+    padding: 12px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #ff3e3e;
+    border-bottom: 2px solid #da3633;
 }
-
-.logo {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #ff3e3e;
-    text-transform: uppercase;
-}
-
-nav ul {
-    display: flex;
-    list-style: none;
-    gap: 1.5rem;
-}
-
-nav a {
-    color: #fff;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.3s;
-}
-
-nav a:hover {
-    color: #ff3e3e;
-}
-
-/* Hero Section */
-.hero {
-    height: 70vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48') center/cover;
-    padding: 0 1rem;
-}
-
-.hero h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-}
-
-.hero p {
+.logo-box h1 {
     font-size: 1.2rem;
-    margin-bottom: 1.5rem;
-    color: #ddd;
+    color: #ffffff;
+    letter-spacing: 1px;
 }
-
-.btn {
-    background-color: #ff3e3e;
-    color: #fff;
-    padding: 0.8rem 1.8rem;
-    text-decoration: none;
-    border-radius: 5px;
+.logo-box h1 span {
+    color: #da3633;
+}
+.sys-status {
+    text-align: right;
+}
+.time-badge {
+    background: #21262d;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #58a6ff;
     font-weight: bold;
-    text-transform: uppercase;
-    transition: background 0.3s;
+}
+.status-badge {
+    font-size: 0.7rem;
+    color: #2ea043;
+    margin-top: 2px;
 }
 
-.btn:hover {
-    background-color: #e03232;
+/* Navigation Tabs */
+.nav-tabs {
+    display: flex;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+.tab-btn.active {
+    color: #ffffff;
+    border-bottom: 2px solid #da3633;
+    background: #21262d;
 }
 
-/* Footer */
-footer {
-    background-color: #1f1f1f;
+/* Container */
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+/* Dashboard Cards */
+.dash-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px 8px;
     text-align: center;
-    padding: 1.5rem;
-    margin-top: 2rem;
-    border-top: 1px solid #333;
+}
+.card h2 {
+    font-size: 1.4rem;
+    color: #58a6ff;
+}
+.card.overdue h2 {
+    color: #da3633;
+}
+.card p {
+    font-size: 0.7rem;
+    color: #8b949e;
+    margin-top: 4px;
+}
+
+/* Sections */
+.section-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: none;
+}
+.section-box.active {
+    display: block;
+}
+.section-title {
+    font-size: 1rem;
+    color: #ffffff;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Inputs & Buttons */
+.form-group {
+    margin-bottom: 12px;
+}
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+    color: #8b949e;
+}
+.form-control {
+    width: 100%;
+    padding: 10px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #fff;
     font-size: 0.9rem;
-    color: #aaa;
+}
+.form-control:focus {
+    outline: none;
+    border-color: #58a6ff;
+}
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: #da3633;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.btn-primary:hover {
+    background: #b62320;
+}
+.btn-success {
+    background: #238636;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+/* Camera */
+.camera-container {
+    width: 100%;
+    height: 220px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 12px;
+}
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.cam-overlay {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    color: #2ea043;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+
+/* Member Cards & Tables */
+.member-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.member-info h4 {
+    color: #fff;
+    font-size: 0.9rem;
+}
+.member-info p {
+    font-size: 0.75rem;
+    color: #8b949e;
+}
+.badge {
+    background: #1f6feb;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+}
+.status-active {
+    color: #2ea043;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+.status-expired {
+    color: #da3633;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #30363d;
+}
+th {
+    background: #21262d;
+    color: #8b949e;
 }
