@@ -48,7 +48,7 @@
             </div>
         </div>
 
-        <!-- 1. Attendance Tab (Original Live Camera Feed Preserved) -->
+        <!-- 1. Attendance Tab -->
         <div id="attendanceTab" class="section-box active">
             <div class="section-title">
                 <span><i class="fa-solid fa-camera"></i> Face Scanner / Quick Attendance</span>
@@ -174,7 +174,29 @@
                         <option value="Online">Online (JazzCash/Bank)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-primary">Save Member & Record Payment</button>
+
+                <!-- NEW: Face Capture Field -->
+                <div class="form-group" style="margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 8px;">Member Face Capture / Photo</label>
+                    
+                    <div style="background: #000; border-radius: 8px; overflow: hidden; text-align: center; margin-bottom: 10px;">
+                        <video id="memberCam" autoplay playsinline style="width: 100%; max-height: 220px; object-fit: cover; display: none;"></video>
+                        <canvas id="memberCanvas" style="width: 100%; max-height: 220px; object-fit: cover; display: none;"></canvas>
+                        <img id="capturedPreview" style="width: 100%; max-height: 220px; object-fit: cover; display: none; border-radius: 8px;">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" id="btnOpenRegCam" class="btn-primary" style="background: #28a745;" onclick="startRegistrationCamera()">
+                            <i class="fa-solid fa-camera"></i> Open Front Camera
+                        </button>
+                        <button type="button" id="btnCapturePhoto" class="btn-primary" style="background: #ffc107; color: #000; display: none;" onclick="captureMemberPhoto()">
+                            <i class="fa-solid fa-circle-dot"></i> Capture Photo
+                        </button>
+                    </div>
+                    <input type="hidden" id="mPhotoData">
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Member & Record Payment</button>
             </form>
         </div>
 
