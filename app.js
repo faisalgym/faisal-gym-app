@@ -30,12 +30,14 @@ function switchTab(tabId, evt) {
     if (tabId === 'attendanceTab') {
         startBackCamera();
         stopRegistrationCamera();
+    } else if (tabId === 'addTab') {
+        startRegistrationCamera();
     } else {
         stopRegistrationCamera();
     }
 }
 
-// Forced Back Camera (Original Preserved)
+// Forced Back Camera (For Attendance)
 async function startBackCamera() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -44,7 +46,9 @@ async function startBackCamera() {
         document.getElementById('webcam').srcObject = stream;
     } catch (err) {
         try {
-            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" }
+            });
             document.getElementById('webcam').srcObject = fallbackStream;
         } catch(e) {
             console.log("Camera access denied or missing");
@@ -52,7 +56,7 @@ async function startBackCamera() {
     }
 }
 
-// --- Registration Camera Functions (Face Capture) ---
+// --- Registration Camera Functions (Back Camera) ---
 async function startRegistrationCamera() {
     try {
         const video = document.getElementById('memberCam');
@@ -61,17 +65,24 @@ async function startRegistrationCamera() {
         
         previewImg.style.display = 'none';
         canvas.style.display = 'none';
+        video.style.display = 'block';
 
-        regCameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" }
-        });
+        // Force Back Camera
+        try {
+            regCameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { exact: "environment" } }
+            });
+        } catch (e) {
+            regCameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" }
+            });
+        }
         
         video.srcObject = regCameraStream;
-        video.style.display = 'block';
         document.getElementById('btnCapturePhoto').style.display = 'inline-block';
-        document.getElementById('btnOpenRegCam').innerText = 'Retake Photo';
+        document.getElementById('btnOpenRegCam').style.display = 'none';
     } catch (err) {
-        alert("Camera access fail ho gaya hai. Permission allow karein.");
+        console.log("Registration Camera error: ", err);
     }
 }
 
@@ -93,7 +104,9 @@ function captureMemberPhoto() {
     previewImg.src = photoBase64;
     previewImg.style.display = 'block';
     video.style.display = 'none';
+    
     document.getElementById('btnCapturePhoto').style.display = 'none';
+    document.getElementById('btnOpenRegCam').style.display = 'inline-block';
 
     stopRegistrationCamera();
 }
@@ -184,14 +197,12 @@ function saveMember(e) {
     document.getElementById('addMemberForm').reset();
     document.getElementById('mPhotoData').value = '';
     document.getElementById('capturedPreview').style.display = 'none';
-    document.getElementById('memberCam').style.display = 'none';
-    document.getElementById('btnOpenRegCam').innerText = 'Open Front Camera';
-    document.getElementById('btnCapturePhoto').style.display = 'none';
-
+    
     initAddMemberForm();
     renderMembers();
     updateDashboard();
     updateFinanceSummary();
+    startRegistrationCamera();
 }
 
 function initAddMemberForm() {
