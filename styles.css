@@ -349,8 +349,13 @@ video {
 .status-active { color: #2ea043; font-weight: bold; font-size: 0.8rem; }
 .status-expired { color: #ff3366; font-weight: bold; font-size: 0.8rem; }
 
-/* Table Responsive */
-.table-responsive { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-th, td { padding: 8px; text-align: left; border-bottom: 1px solid #30363d; }
-th { background: #161b22; color: #8b949e; }
+/* Camera & Member Photo Capture Additions */
+#memberCam, #memberCanvas, #capturedPreview {
+    border: 1px solid rgba(0, 102, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.member-card img {
+    border: 2px solid #0066FF;
+    box-shadow: 0 0 8px rgba(0, 102, 255, 0.4);
+}
