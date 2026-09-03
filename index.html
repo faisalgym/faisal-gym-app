@@ -147,6 +147,28 @@
                     <label>Auto-Assigned ID</label>
                     <input type="text" id="mAutoId" class="form-control input-disabled" readonly>
                 </div>
+                
+                <!-- Integrated Member Photo Capture Field -->
+                <div class="form-group" style="margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 8px;">Member Face Capture / Photo</label>
+                    
+                    <div style="background: #000; border-radius: 8px; overflow: hidden; text-align: center; margin-bottom: 10px; border: 1px solid rgba(0, 102, 255, 0.4);">
+                        <video id="memberCam" autoplay playsinline style="width: 100%; max-height: 220px; object-fit: cover; display: block;"></video>
+                        <canvas id="memberCanvas" style="width: 100%; max-height: 220px; object-fit: cover; display: none;"></canvas>
+                        <img id="capturedPreview" style="width: 100%; max-height: 220px; object-fit: cover; display: none; border-radius: 8px;">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" id="btnCapturePhoto" class="btn-primary" style="background: #28a745;" onclick="captureMemberPhoto()">
+                            <i class="fa-solid fa-camera"></i> Capture Photo
+                        </button>
+                        <button type="button" id="btnOpenRegCam" class="btn-primary" style="background: #ffc107; color: #000; display: none;" onclick="startRegistrationCamera()">
+                            <i class="fa-solid fa-rotate-right"></i> Retake Photo
+                        </button>
+                    </div>
+                    <input type="hidden" id="mPhotoData">
+                </div>
+
                 <div class="form-group">
                     <label>Full Name</label>
                     <input type="text" id="mName" class="form-control" required placeholder="Enter member name">
@@ -173,27 +195,6 @@
                         <option value="Cash">Cash</option>
                         <option value="Online">Online (JazzCash/Bank)</option>
                     </select>
-                </div>
-
-                <!-- NEW: Face Capture Field -->
-                <div class="form-group" style="margin-top: 15px;">
-                    <label style="display: block; margin-bottom: 8px;">Member Face Capture / Photo</label>
-                    
-                    <div style="background: #000; border-radius: 8px; overflow: hidden; text-align: center; margin-bottom: 10px;">
-                        <video id="memberCam" autoplay playsinline style="width: 100%; max-height: 220px; object-fit: cover; display: none;"></video>
-                        <canvas id="memberCanvas" style="width: 100%; max-height: 220px; object-fit: cover; display: none;"></canvas>
-                        <img id="capturedPreview" style="width: 100%; max-height: 220px; object-fit: cover; display: none; border-radius: 8px;">
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <button type="button" id="btnOpenRegCam" class="btn-primary" style="background: #28a745;" onclick="startRegistrationCamera()">
-                            <i class="fa-solid fa-camera"></i> Open Front Camera
-                        </button>
-                        <button type="button" id="btnCapturePhoto" class="btn-primary" style="background: #ffc107; color: #000; display: none;" onclick="captureMemberPhoto()">
-                            <i class="fa-solid fa-circle-dot"></i> Capture Photo
-                        </button>
-                    </div>
-                    <input type="hidden" id="mPhotoData">
                 </div>
 
                 <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Member & Record Payment</button>
