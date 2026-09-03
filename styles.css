@@ -349,7 +349,7 @@ video {
 .status-active { color: #2ea043; font-weight: bold; font-size: 0.8rem; }
 .status-expired { color: #ff3366; font-weight: bold; font-size: 0.8rem; }
 
-/* Camera & Member Photo Capture Additions */
+/* Camera Additions */
 #memberCam, #memberCanvas, #capturedPreview {
     border: 1px solid rgba(0, 102, 255, 0.4);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
