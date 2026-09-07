@@ -1,342 +1,344 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Faisal Gym Management</title>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faisal Gym Management</title>
+  <style>
     :root {
-        --bg-color: #0f172a;
-        --card-bg: #1e293b;
-        --accent: #ff9800;
-        --accent-hover: #e68a00;
-        --text-main: #f8fafc;
-        --text-sub: #94a3b8;
-        --border: #334155;
-        --danger: #ef4444;
-        --success: #22c55e;
+      --bg-color: #0d0f12;
+      --card-bg: #161b22;
+      --accent-color: #ff9800;
+      --text-color: #f0f6fc;
+      --green-color: #00e676;
+      --red-color: #ff1744;
+      --border-color: #30363d;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: var(--bg-color); color: var(--text-main); padding: 15px; line-height: 1.5; }
-    
-    .container { max-width: 1200px; margin: 0 auto; }
-    
-    header { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
-    .logo-container { display: flex; align-items: center; gap: 12px; }
-    .logo-container img { height: 50px; width: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
-    .logo-container h1 { font-size: 1.3rem; color: var(--accent); }
-    
-    .digital-clock { font-size: 1rem; font-weight: bold; background: #000; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); }
+    body { background-color: var(--bg-color); color: var(--text-color); padding: 12px; }
 
-    .main-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
-    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+    /* Header */
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); padding: 12px 15px; border-radius: 10px;
+      border: 1px solid var(--border-color); margin-bottom: 15px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-color); }
+    .brand h1 { font-size: 1.1rem; color: var(--accent-color); }
+    .digital-clock {
+      font-size: 0.95rem; font-weight: bold; background: #000;
+      padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent-color); color: var(--accent-color);
+    }
+
+    /* Layout */
+    .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
+    @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } }
+
+    .card { background: var(--card-bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); }
+    .card-title { font-size: 1rem; color: var(--accent-color); margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-weight: bold; }
+
+    /* Scanner View */
+    .scanner-box {
+      position: relative; width: 100%; height: 230px; background: #000;
+      border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border-color);
+    }
+    video { width: 100%; height: 100%; object-fit: cover; }
+    .scan-overlay {
+      position: absolute; top: 10px; left: 10px; right: 10px; padding: 10px;
+      border-radius: 6px; text-align: center; font-weight: bold; display: none; z-index: 10;
+    }
+    .scan-overlay.green { display: block; background: rgba(0, 230, 118, 0.9); color: #000; border: 2px solid var(--green-color); }
+    .scan-overlay.red { display: block; background: rgba(255, 23, 68, 0.9); color: #fff; border: 2px solid var(--red-color); }
+
+    /* Inputs & Buttons */
+    input, button {
+      width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px;
+      border: 1px solid var(--border-color); background: #0d0f12; color: #fff; font-size: 0.9rem;
+    }
+    input:focus { outline: none; border-color: var(--accent-color); }
+    input[readonly] { background: #161b22; color: var(--accent-color); font-weight: bold; }
+    button { background: var(--accent-color); color: #000; font-weight: bold; cursor: pointer; border: none; }
+    .btn-danger { background: var(--red-color); color: #fff; }
     
-    .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
-    .card h2 { font-size: 1.1rem; margin-bottom: 15px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 4px; }
-    .form-group input, .form-group select { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: #fff; font-size: 0.9rem; }
-    .form-group input[readonly] { background: #1e293b; color: var(--accent); font-weight: bold; }
-    
-    /* Camera Styling */
-    .camera-box { text-align: center; margin-bottom: 15px; }
-    video { width: 100%; height: 220px; background: #000; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); }
-    canvas { display: none; }
-    .photo-preview { width: 100%; height: 220px; background: #0f172a; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px dashed var(--border); }
-    .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .btn { background: var(--accent); color: #000; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.2s; margin-top: 5px; }
-    .btn:hover { background: var(--accent-hover); }
-    .btn-secondary { background: #475569; color: #fff; }
-    .btn-secondary:hover { background: #334155; }
-    .btn-danger { background: var(--danger); color: #fff; }
-    .btn-whatsapp { background: #25D366; color: white; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; }
-    .btn-whatsapp:hover { background: #1da851; }
-    
-    /* Table Styling */
-    .table-container { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    th { background: #0f172a; color: var(--text-sub); }
-    
-    .member-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent); }
-    .badge-code { background: var(--accent); color: #000; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
-    .badge-status { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-    .badge-paid { background: var(--success); color: #000; }
-    .badge-due { background: var(--danger); color: #fff; }
-    
-    .actions-cell { display: flex; gap: 6px; align-items: center; }
-</style>
+    .btn-whatsapp { 
+      background: #25D366; color: #fff; display: inline-flex; align-items: center; justify-content: center;
+      gap: 5px; text-decoration: none; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold;
+    }
+    .btn-whatsapp svg { width: 16px; height: 16px; fill: currentColor; }
+
+    .capture-area { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+    .photo-preview { width: 55px; height: 55px; border-radius: 6px; background: #000; border: 1px solid var(--border-color); object-fit: cover; }
+
+    /* Member List Cards */
+    .member-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; margin-top: 10px; }
+    .member-card {
+      display: flex; align-items: center; gap: 12px; background: #0d0f12;
+      padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
+    }
+    .member-card img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent-color); }
+    .member-info { flex: 1; }
+    .member-info h4 { font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 6px; }
+    .member-info p { font-size: 0.78rem; color: #8b949e; margin-top: 2px; }
+
+    .badge { display: inline-block; padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; font-weight: bold; }
+    .badge-green { background: var(--green-color); color: #000; }
+    .badge-red { background: var(--red-color); color: #fff; }
+
+    .action-btns { display: flex; gap: 4px; }
+    .action-btns button, .action-btns a { margin-top: 0; width: auto; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <div class="logo-container">
-            <img src="https://i.postimg.cc/3RX1JwMh/FB-IMG-1785949977671.jpg" alt="Gym Logo">
-            <h1>FAISAL GYM</h1>
-        </div>
-        <div class="digital-clock" id="clock">00:00:00 AM</div>
-    </header>
-
-    <div class="main-grid">
-        <!-- Add Member Form -->
-        <div class="card">
-            <h2>Naya Member Register Karein</h2>
-            <form id="memberForm">
-                <div class="form-group">
-                    <label>Auto Member Code</label>
-                    <input type="text" id="memberCode" readonly placeholder="Generating...">
-                </div>
-                
-                <div class="form-group">
-                    <label>Pura Naam</label>
-                    <input type="text" id="fullName" required placeholder="Member Naam">
-                </div>
-                
-                <div class="form-group">
-                    <label>WhatsApp Number</label>
-                    <input type="tel" id="whatsapp" required placeholder="03451234567">
-                </div>
-                
-                <div class="form-group">
-                    <label>Admission Date</label>
-                    <input type="date" id="admissionDate" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Expiry Date (Auto +1 Month)</label>
-                    <input type="date" id="expiryDate" readonly>
-                </div>
-
-                <!-- Back Camera Section -->
-                <div class="camera-box">
-                    <label style="display:block; text-align:left; font-size:0.85rem; color:var(--text-sub); margin-bottom:5px;">Member Photo (Back Camera)</label>
-                    <div id="cameraArea">
-                        <video id="video" autoplay playsinline muted></video>
-                    </div>
-                    <div id="previewArea" class="photo-preview" style="display:none;">
-                        <img id="capturedImage" src="" alt="Captured Photo">
-                    </div>
-                    <canvas id="canvas" width="320" height="240"></canvas>
-                    
-                    <button type="button" class="btn btn-secondary" id="snapBtn" style="margin-top:8px;">📸 Tasveer Khainchein</button>
-                    <button type="button" class="btn btn-secondary" id="retakeBtn" style="margin-top:8px; display:none;">🔄 Retake Photo</button>
-                </div>
-
-                <button type="submit" class="btn">Save Member Profile</button>
-            </form>
-        </div>
-
-        <!-- Members List -->
-        <div class="card">
-            <h2>Members List & Search</h2>
-            <input type="text" id="searchInput" placeholder="Naam ya ID (e.g. A-1) se search karein..." onkeyup="renderTable()" style="width:100%; padding:10px; background:#0f172a; border:1px solid var(--border); border-radius:6px; color:#fff; margin-bottom:15px;">
-            
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Photo</th>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Dates</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="membersTable">
-                        <!-- Dynamic Rows -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <img src="https://i.postimg.cc/3RX1JwMh/FB-IMG-1785949977671.jpg" alt="Logo">
+      <h1>FAISAL GYM</h1>
     </div>
-</div>
+    <div class="digital-clock" id="clock">00:00:00 AM</div>
+  </header>
 
-<script>
-    let members = JSON.parse(localStorage.getItem('gym_members')) || [];
-    let capturedPhotoData = "";
-    let videoStream = null;
-
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const capturedImage = document.getElementById('capturedImage');
-    const cameraArea = document.getElementById('cameraArea');
-    const previewArea = document.getElementById('previewArea');
-    const snapBtn = document.getElementById('snapBtn');
-    const retakeBtn = document.getElementById('retakeBtn');
+  <div class="container">
     
+    <!-- Module 1: Live Scanner -->
+    <div class="card">
+      <div class="card-title">Live Back-Camera Scanner</div>
+      <div class="scanner-box">
+        <video id="scannerVideo" autoplay playsinline muted></video>
+        <div id="scanOverlay" class="scan-overlay">
+          <div id="scanName" style="font-size:1.1rem;">Member Name</div>
+          <small id="scanStatus">STATUS</small>
+        </div>
+      </div>
+      <button onclick="simulateScan()" style="margin-top: 8px; background:#21262d; color:#fff; border:1px solid var(--border-color);">🔍 Scan Detection Test</button>
+    </div>
+
+    <!-- Module 2: Member Form -->
+    <div class="card">
+      <div class="card-title">Member Profile Form</div>
+      <form id="memberForm" onsubmit="saveMember(event)">
+        <input type="hidden" id="editIndex" value="-1">
+        
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="mCode" readonly placeholder="Auto Code">
+          <input type="text" id="mName" placeholder="Pura Naam" required style="flex:2;">
+        </div>
+        
+        <input type="tel" id="mPhone" placeholder="WhatsApp Mobile Number" required>
+        
+        <div style="display: flex; gap: 8px;">
+          <div style="flex:1;">
+            <small style="color:#8b949e; font-size:0.75rem;">Admission Date</small>
+            <input type="date" id="mAdminDate" required onchange="setAutoExpiry()">
+          </div>
+          <div style="flex:1;">
+            <small style="color:#8b949e; font-size:0.75rem;">Expiry Date (+1 Month)</small>
+            <input type="date" id="mExpDate" required>
+          </div>
+        </div>
+
+        <div class="capture-area">
+          <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='55' height='55' fill='%2330363d'><rect width='100%' height='100%'/></svg>" alt="Preview">
+          <button type="button" onclick="capturePhoto()">📸 Tasveer Khainchein</button>
+        </div>
+
+        <button type="submit" id="saveBtn" style="margin-top: 12px;">Save Profile Entry</button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Module 3: Dynamic Member Profiles & Search -->
+  <div class="card" style="margin-top: 15px;">
+    <div class="card-title">Saved Member Profiles</div>
+    <input type="text" id="searchInput" placeholder="Search Profile by Name or Code (e.g. A-1)..." onkeyup="renderMembers()">
+    
+    <div class="member-list" id="memberList">
+      <!-- Member Cards Will Save Here -->
+    </div>
+  </div>
+
+  <script>
+    let members = JSON.parse(localStorage.getItem('gym_members')) || [];
+    let capturedImageData = '';
+
     // Digital Clock
     function updateClock() {
-        const now = new Date();
-        document.getElementById('clock').innerText = now.toLocaleTimeString();
+      document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Auto Code Generation Logic (A-1 to G-100 with Recycle)
-    function generateMemberCode() {
-        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-        const assignedCodes = new Set(members.map(m => m.code));
+    // Auto Code Generation (A-1 to G-100 with Gap Recycle)
+    function generateNextCode() {
+      const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+      const assignedCodes = new Set(members.map(m => m.code));
 
-        for (let l of letters) {
-            for (let i = 1; i <= 100; i++) {
-                let code = `${l}-${i}`;
-                if (!assignedCodes.has(code)) {
-                    return code;
-                }
-            }
+      for (let l of letters) {
+        for (let i = 1; i <= 100; i++) {
+          let code = `${l}-${i}`;
+          if (!assignedCodes.has(code)) return code;
         }
-        return "LIMIT-FULL";
+      }
+      return 'FULL';
     }
 
-    // Back Camera
-    async function startBackCamera() {
+    // Camera Init
+    async function startCamera() {
+      const video = document.getElementById('scannerVideo');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        video.srcObject = stream;
+      } catch (err) {
         try {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-            }
-            videoStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" } },
-                audio: false
-            });
-            video.srcObject = videoStream;
-        } catch (err) {
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" },
-                    audio: false
-                });
-                video.srcObject = videoStream;
-            } catch (fallbackErr) {
-                console.log("Camera permissions error");
-            }
-        }
+          const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = fallback;
+        } catch (e) { console.log('Camera Permission Needed'); }
+      }
     }
 
     // Photo Capture
-    snapBtn.addEventListener('click', () => {
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 240;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        capturedPhotoData = canvas.toDataURL('image/jpeg');
-        capturedImage.src = capturedPhotoData;
-        
-        cameraArea.style.display = 'none';
-        previewArea.style.display = 'flex';
-        snapBtn.style.display = 'none';
-        retakeBtn.style.display = 'block';
-    });
-
-    retakeBtn.addEventListener('click', () => {
-        capturedPhotoData = "";
-        cameraArea.style.display = 'block';
-        previewArea.style.display = 'none';
-        snapBtn.style.display = 'block';
-        retakeBtn.style.display = 'none';
-    });
-
-    // Auto Expiry Date (+1 Month)
-    document.getElementById('admissionDate').addEventListener('change', function() {
-        if (!this.value) return;
-        let admDate = new Date(this.value);
-        admDate.setMonth(admDate.getMonth() + 1);
-        
-        let yyyy = admDate.getFullYear();
-        let mm = String(admDate.getMonth() + 1).padStart(2, '0');
-        let dd = String(admDate.getDate()).padStart(2, '0');
-        
-        document.getElementById('expiryDate').value = `${yyyy}-${mm}-${dd}`;
-    });
-
-    function initForm() {
-        document.getElementById('memberCode').value = generateMemberCode();
-        let today = new Date().toISOString().split('T')[0];
-        document.getElementById('admissionDate').value = today;
-        document.getElementById('admissionDate').dispatchEvent(new Event('change'));
-        retakeBtn.click();
+    function capturePhoto() {
+      const video = document.getElementById('scannerVideo');
+      const canvas = document.createElement('canvas');
+      canvas.width = 180; canvas.height = 180;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, 180, 180);
+      capturedImageData = canvas.toDataURL('image/png');
+      document.getElementById('photoPreview').src = capturedImageData;
     }
 
-    // Save Member
-    document.getElementById('memberForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const newMember = {
-            id: Date.now(),
-            code: document.getElementById('memberCode').value,
-            name: document.getElementById('fullName').value.trim(),
-            whatsapp: document.getElementById('whatsapp').value.trim(),
-            admission: document.getElementById('admissionDate').value,
-            expiry: document.getElementById('expiryDate').value,
-            photo: capturedPhotoData || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="%23334155"><rect width="100%" height="100%"/></svg>'
-        };
+    // Auto Expiry Logic (+1 Month)
+    function setAutoExpiry() {
+      const adminVal = document.getElementById('mAdminDate').value;
+      if (!adminVal) return;
+      const d = new Date(adminVal);
+      d.setMonth(d.getMonth() + 1);
+      document.getElementById('mExpDate').value = d.toISOString().split('T')[0];
+    }
 
-        members.push(newMember);
+    // Form Reset & Defaults
+    function resetForm() {
+      document.getElementById('memberForm').reset();
+      document.getElementById('editIndex').value = -1;
+      document.getElementById('mCode').value = generateNextCode();
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('mAdminDate').value = today;
+      setAutoExpiry();
+      document.getElementById('photoPreview').src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2330363d"><rect width="100%" height="100%"/></svg>';
+      capturedImageData = '';
+      document.getElementById('saveBtn').innerText = 'Save Profile Entry';
+    }
+
+    // Save or Update Member
+    function saveMember(e) {
+      e.preventDefault();
+      const editIndex = parseInt(document.getElementById('editIndex').value);
+      const code = document.getElementById('mCode').value;
+      const name = document.getElementById('mName').value.trim();
+      const phone = document.getElementById('mPhone').value.trim();
+      const adminDate = document.getElementById('mAdminDate').value;
+      const expDate = document.getElementById('mExpDate').value;
+      const photo = capturedImageData || (editIndex !== -1 ? members[editIndex].photo : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2330363d"><rect width="100%" height="100%"/></svg>');
+
+      if (editIndex === -1) {
+        members.push({ code, name, phone, adminDate, expDate, photo });
+      } else {
+        members[editIndex] = { code, name, phone, adminDate, expDate, photo };
+      }
+
+      localStorage.setItem('gym_members', JSON.stringify(members));
+      resetForm();
+      renderMembers();
+    }
+
+    // Edit Member Profile
+    function editMember(index) {
+      const m = members[index];
+      document.getElementById('editIndex').value = index;
+      document.getElementById('mCode').value = m.code;
+      document.getElementById('mName').value = m.name;
+      document.getElementById('mPhone').value = m.phone;
+      document.getElementById('mAdminDate').value = m.adminDate;
+      document.getElementById('mExpDate').value = m.expDate;
+      document.getElementById('photoPreview').src = m.photo;
+      capturedImageData = m.photo;
+      document.getElementById('saveBtn').innerText = 'Update Profile Data';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Delete Member Profile
+    function deleteMember(index) {
+      if (confirm(`Are you sure you want to delete profile ${members[index].code}?`)) {
+        members.splice(index, 1);
         localStorage.setItem('gym_members', JSON.stringify(members));
-        
-        this.reset();
-        initForm();
-        renderTable();
-    });
-
-    // Render Table
-    function renderTable() {
-        const query = document.getElementById('searchInput').value.toLowerCase().trim();
-        const tbody = document.getElementById('membersTable');
-        tbody.innerHTML = '';
-        const today = new Date().toISOString().split('T')[0];
-
-        members.forEach(m => {
-            if (m.name.toLowerCase().includes(query) || m.code.toLowerCase().includes(query)) {
-                let cleanPhone = m.whatsapp.replace(/[^0-9]/g, '');
-                if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
-                
-                const isPaid = m.expiry >= today;
-                let waMessage = encodeURIComponent(`Dear ${m.name} (${m.code}), ${isPaid ? 'aap ki gym fee receive ho chuki hai. Shukriya!' : 'aap ki gym fee due hai. Barae meharbani fee jama karwadein.'}`);
-                let waLink = `https://wa.me/${cleanPhone}?text=${waMessage}`;
-
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><img src="${m.photo}" class="member-img" alt="Member"></td>
-                    <td><span class="badge-code">${m.code}</span></td>
-                    <td>
-                        <strong>${m.name}</strong>
-                        <br><span class="badge-status ${isPaid ? 'badge-paid' : 'badge-due'}">${isPaid ? 'PAID' : 'DUE'}</span>
-                    </td>
-                    <td>
-                        <small style="display:block;">Adm: ${m.admission}</small>
-                        <small style="color:var(--danger); display:block;">Exp: ${m.expiry}</small>
-                    </td>
-                    <td class="actions-cell">
-                        <a href="${waLink}" target="_blank" class="btn-whatsapp">💬 WA</a>
-                        <button onclick="deleteMember(${m.id})" class="btn btn-danger" style="padding: 6px 10px; width:auto; margin-top:0;">X</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            }
-        });
+        resetForm();
+        renderMembers();
+      }
     }
 
-    // Delete Member
-    window.deleteMember = function(id) {
-        if (confirm("Kya aap is member ko delete karna chahte hain? Inka code naye member ke liye free ho jayega.")) {
-            members = members.filter(m => m.id !== id);
-            localStorage.setItem('gym_members', JSON.stringify(members));
-            renderTable();
-            document.getElementById('memberCode').value = generateMemberCode();
+    // Render Saved Profile Cards
+    function renderMembers() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const list = document.getElementById('memberList');
+      list.innerHTML = '';
+      const today = new Date().toISOString().split('T')[0];
+
+      members.forEach((m, index) => {
+        if (m.name.toLowerCase().includes(query) || m.code.toLowerCase().includes(query)) {
+          const isPaid = m.expDate >= today;
+          let cleanPhone = m.phone.replace(/[^0-9]/g, '');
+          if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
+          
+          const waMsg = encodeURIComponent(`Dear ${m.name} (${m.code}), ${isPaid ? 'Aap ki gym fee received ho chuki hai. Shukriya!' : 'Aap ki gym fee due hai. Barae meharbani fee jama karwadein.'}`);
+          const waUrl = `https://wa.me/${cleanPhone}?text=${waMsg}`;
+
+          const card = document.createElement('div');
+          card.className = 'member-card';
+          card.innerHTML = `
+            <img src="${m.photo}" alt="Photo">
+            <div class="member-info">
+              <h4>${m.name} <span class="badge ${isPaid ? 'badge-green' : 'badge-red'}">${m.code}</span></h4>
+              <p>📱 ${m.phone}</p>
+              <p>Expiry: ${m.expDate} (${isPaid ? 'PAID' : 'DUE'})</p>
+            </div>
+            <div class="action-btns">
+              <a href="${waUrl}" target="_blank" class="btn-whatsapp">
+                <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                WA
+              </a>
+              <button onclick="editMember(${index})">Edit</button>
+              <button class="btn-danger" onclick="deleteMember(${index})">Delete</button>
+            </div>
+          `;
+          list.appendChild(card);
         }
-    };
+      });
+    }
 
-    window.onload = () => {
-        initForm();
-        renderTable();
-        startBackCamera();
-    };
-</script>
+    // Scanner Sound & Visual Simulation
+    function simulateScan() {
+      if (members.length === 0) return alert('Pehle kam se kam ek member register karein.');
+      const m = members[Math.floor(Math.random() * members.length)];
+      const today = new Date().toISOString().split('T')[0];
+      const isPaid = m.expDate >= today;
 
+      const overlay = document.getElementById('scanOverlay');
+      document.getElementById('scanName').innerText = `${m.name} (${m.code})`;
+      
+      overlay.className = `scan-overlay ${isPaid ? 'green' : 'red'}`;
+      document.getElementById('scanStatus').innerText = isPaid ? 'FEE PAID - ACCESS GRANTED' : 'FEE DUE - OVERDUE';
+
+      setTimeout(() => { overlay.className = 'scan-overlay'; }, 3000);
+    }
+
+    // Startup
+    startCamera();
+    resetForm();
+    renderMembers();
+  </script>
 </body>
 </html>
