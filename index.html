@@ -1,890 +1,546 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAISAL GYM - Management System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* ==========================================================================
-           FAISAL GYM - ELECTRIC NEON BLUE (#0066FF) GLASSMORPHISM THEME
-           ========================================================================== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym Management System</title>
+  <style>
+    :root {
+      --bg-color: #0d0f12;
+      --card-bg: #161b22;
+      --accent-color: #ff9800;
+      --text-color: #f0f6fc;
+      --green-color: #00e676;
+      --red-color: #ff1744;
+      --border-color: #30363d;
+    }
 
-        body {
-            background-color: #080c14;
-            background-image: radial-gradient(circle at 50% 0%, rgba(0, 102, 255, 0.15), transparent 70%);
-            color: #c9d1d9;
-            padding-bottom: 30px;
-            min-height: 100vh;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-        /* Header & Logo */
-        header {
-            background-color: rgba(13, 17, 23, 0.85);
-            backdrop-filter: blur(10px);
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #0066FF;
-            box-shadow: 0 4px 20px rgba(0, 102, 255, 0.2);
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 15px;
+    }
 
-        .logo-box {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    /* Header & Branding */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
 
-        .gym-logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid #0066FF;
-            object-fit: cover;
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        .logo-box h1 {
-            font-size: 1.2rem;
-            color: #ffffff;
-            letter-spacing: 1px;
-        }
+    .brand img {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent-color);
+    }
 
-        .logo-box h1 span {
-            color: #0066FF;
-        }
+    .brand h1 {
+      font-size: 1.2rem;
+      color: var(--accent-color);
+    }
 
-        .sys-status {
-            text-align: right;
-        }
+    .digital-clock {
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: #000;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--accent-color);
+      color: var(--accent-color);
+    }
 
-        .time-badge {
-            background: #161b22;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: #00f0ff;
-            font-weight: bold;
-            border: 1px solid rgba(0, 102, 255, 0.3);
-        }
+    /* Layout Sections */
+    .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
 
-        .status-badge {
-            font-size: 0.7rem;
-            color: #2ea043;
-            margin-top: 2px;
-        }
+    @media (min-width: 768px) {
+      .container {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
 
-        /* Navigation Tabs */
-        .nav-tabs {
-            display: flex;
-            background: #161b22;
-            border-bottom: 1px solid #30363d;
-            overflow-x: auto;
-        }
+    .card {
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
 
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            background: none;
-            border: none;
-            color: #8b949e;
-            font-weight: bold;
-            font-size: 0.85rem;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
+    .card-title {
+      font-size: 1.1rem;
+      color: var(--accent-color);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 5px;
+    }
 
-        .tab-btn.active {
-            color: #ffffff;
-            border-bottom: 2px solid #0066FF;
-            background: rgba(0, 102, 255, 0.1);
-        }
+    /* Scanner View */
+    .scanner-box {
+      position: relative;
+      width: 100%;
+      height: 260px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        /* Main Container */
-        .container {
-            max-width: 650px;
-            margin: 0 auto;
-            padding: 15px;
-        }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
-        /* Dashboard Cards */
-        .dash-cards {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+    .scan-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      display: none;
+      z-index: 10;
+    }
 
-        .card {
-            background: rgba(22, 27, 34, 0.8);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(0, 102, 255, 0.2);
-            border-radius: 8px;
-            padding: 12px 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
+    .scan-overlay.green {
+      display: block;
+      background: rgba(0, 230, 118, 0.85);
+      color: #000;
+      border: 2px solid var(--green-color);
+    }
 
-        .card:hover {
-            transform: translateY(-2px);
-            border-color: #0066FF;
-        }
+    .scan-overlay.red {
+      display: block;
+      background: rgba(255, 23, 68, 0.85);
+      color: #fff;
+      border: 2px solid var(--red-color);
+    }
 
-        .card h2 {
-            font-size: 1.4rem;
-            color: #00f0ff;
-        }
+    /* Controls & Form Inputs */
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: #0d0f12;
+      color: #fff;
+      font-size: 0.95rem;
+    }
 
-        .card.overdue h2 {
-            color: #ff3366;
-        }
+    input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
 
-        .card p {
-            font-size: 0.7rem;
-            color: #8b949e;
-            margin-top: 4px;
-        }
+    button {
+      background: var(--accent-color);
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s;
+    }
 
-        /* Section Box */
-        .section-box {
-            background: rgba(22, 27, 34, 0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 102, 255, 0.25);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: none;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
+    button:hover {
+      opacity: 0.9;
+    }
 
-        .section-box.active {
-            display: block;
-        }
+    .btn-danger {
+      background: var(--red-color);
+      color: #fff;
+    }
 
-        .section-title {
-            font-size: 0.95rem;
-            color: #ffffff;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-        }
+    .btn-whatsapp {
+      background: #25D366;
+      color: #fff;
+    }
 
-        .cam-status-label {
-            font-size: 0.72rem;
-            color: #8b949e;
-            font-weight: normal;
-        }
+    /* Photo Capture Box */
+    .capture-area {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
 
-        /* Camera & Scanning Setup */
-        .camera-container {
-            width: 100%;
-            height: 220px;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            margin-bottom: 12px;
-            border: 1px solid rgba(0, 102, 255, 0.4);
-        }
+    .photo-preview {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      background: #000;
+      border: 1px solid var(--border-color);
+      object-fit: cover;
+    }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+    /* Search & Member List */
+    .search-box {
+      margin-bottom: 15px;
+    }
 
-        .cam-overlay {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #2ea043;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-        }
+    .member-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
 
-        .quick-input-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
+    .member-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0d0f12;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
 
-        /* Form Styling */
-        .form-group {
-            margin-bottom: 12px;
-        }
+    .member-item img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
 
-        .form-group label {
-            display: block;
-            font-size: 0.8rem;
-            margin-bottom: 4px;
-            color: #8b949e;
-        }
+    .member-info {
+      flex: 1;
+    }
 
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            background: rgba(13, 17, 23, 0.7);
-            border: 1px solid rgba(0, 102, 255, 0.3);
-            border-radius: 6px;
-            color: #fff;
-            font-size: 0.9rem;
-        }
+    .member-info h4 {
+      font-size: 1rem;
+      color: #fff;
+    }
 
-        .form-control:focus {
-            outline: none;
-            border-color: #0066FF;
-            box-shadow: 0 0 8px rgba(0, 102, 255, 0.4);
-        }
+    .member-info p {
+      font-size: 0.8rem;
+      color: #8b949e;
+    }
 
-        .input-disabled {
-            background: rgba(255, 255, 255, 0.05);
-            color: #00f0ff;
-            font-weight: bold;
-        }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      font-weight: bold;
+    }
 
-        /* Buttons */
-        .btn-primary {
-            width: 100%;
-            padding: 11px;
-            background: #0066FF;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.88rem;
-            transition: background 0.2s;
-            box-shadow: 0 0 10px rgba(0, 102, 255, 0.3);
-        }
+    .badge-green { background: var(--green-color); color: #000; }
+    .badge-red { background: var(--red-color); color: #fff; }
 
-        .btn-primary:hover { background: #0052cc; }
+    .action-btns {
+      display: flex;
+      gap: 5px;
+    }
 
-        .btn-danger-btn {
-            width: 100%;
-            padding: 10px;
-            background: rgba(255, 51, 102, 0.2);
-            border: 1px solid #ff3366;
-            color: #ff3366;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .btn-secondary {
-            background: rgba(0, 102, 255, 0.2);
-            border: 1px solid #0066FF;
-            color: #00f0ff;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
-        }
-
-        .btn-whatsapp {
-            background: rgba(46, 160, 67, 0.2);
-            border: 1px solid #2ea043;
-            color: #2ea043;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
-        }
-
-        .btn-delete {
-            background: rgba(255, 51, 102, 0.15);
-            color: #ff3366;
-            border: 1px solid rgba(255, 51, 102, 0.4);
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
-        }
-
-        /* Alert Boxes */
-        .alert-box {
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .alert-success { background: rgba(46, 160, 67, 0.2); border: 1px solid #2ea043; color: #2ea043; }
-        .alert-danger { background: rgba(255, 51, 102, 0.2); border: 1px solid #ff3366; color: #ff3366; }
-        .hidden { display: none; }
-
-        /* Financial Grid */
-        .finance-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .fin-card {
-            background: rgba(13, 17, 23, 0.6);
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .fin-card span { font-size: 0.73rem; color: #8b949e; }
-        .fin-card h4 { font-size: 1.1rem; margin-top: 4px; color: #fff; }
-        .text-danger h4 { color: #ff3366; }
-        .text-neon h4 { color: #00f0ff; }
-
-        /* Member List Cards */
-        .member-card {
-            background: #0d1117;
-            border: 1px solid rgba(0, 102, 255, 0.2);
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .member-info h4 { color: #fff; font-size: 0.95rem; }
-        .member-info p { font-size: 0.75rem; color: #8b949e; margin-top: 3px; }
-        .badge { background: #0066FF; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
-        .status-active { color: #2ea043; font-weight: bold; font-size: 0.8rem; }
-        .status-expired { color: #ff3366; font-weight: bold; font-size: 0.8rem; }
-
-        /* Table Responsive */
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #30363d; }
-        th { background: #161b22; color: #8b949e; }
-        
-        .audit-list { list-style: none; margin-top: 10px; }
-        .audit-item {
-            background: rgba(13, 17, 23, 0.5);
-            padding: 8px 10px;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.05);
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-        }
-    </style>
+    .action-btns button {
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      margin-top: 0;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <header>
-        <div class="logo-box">
-            <img src="https://i.postimg.cc/nc5QL4bG/FB-IMG-1785949977671.jpg" alt="Logo" class="gym-logo">
-            <h1>FAISAL <span>GYM</span></h1>
-        </div>
-        <div class="sys-status">
-            <div class="time-badge" id="liveClock">00:00:00 AM</div>
-            <div class="status-badge">System Active</div>
-        </div>
-    </header>
+  <!-- Header Section -->
+  <header>
+    <div class="brand">
+      <img src="logo.png" alt="Gym Logo" id="gymLogo">
+      <h1>FAISAL GYM</h1>
+    </div>
+    <div class="digital-clock" id="clock">00:00:00 AM</div>
+  </header>
 
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('attendanceTab', event)">Attendance</button>
-        <button class="tab-btn" onclick="switchTab('logsTab', event)">Logs</button>
-        <button class="tab-btn" onclick="switchTab('membersTab', event)">Members</button>
-        <button class="tab-btn" onclick="switchTab('financeTab', event)">Finance</button>
-        <button class="tab-btn" onclick="switchTab('addTab', event)">Add Member</button>
+  <div class="container">
+    
+    <!-- Module 1: Live Scanner -->
+    <div class="card">
+      <div class="card-title">Live Back-Camera Scanner</div>
+      <div class="scanner-box">
+        <video id="scannerVideo" autoplay playsinline></video>
+        <div id="scanOverlay" class="scan-overlay">
+          <div id="scanName">Member Name</div>
+          <small id="scanStatus">STATUS</small>
+        </div>
+      </div>
+      <button onclick="triggerManualScan()" style="margin-top: 12px;">Simulate Scan Entry</button>
     </div>
 
-    <div class="container">
-
-        <!-- Analytics Overview -->
-        <div class="dash-cards">
-            <div class="card" onclick="switchTab('membersTab', event)">
-                <h2 id="totalActiveCount">0</h2>
-                <p>Active Members</p>
-            </div>
-            <div class="card" onclick="switchTab('logsTab', event)">
-                <h2 id="todayAttendanceCount">0</h2>
-                <p>Today Attendance</p>
-            </div>
-            <div class="card overdue" onclick="switchTab('membersTab', event)">
-                <h2 id="feeOverdueCount">0</h2>
-                <p>Fee Overdue</p>
-            </div>
+    <!-- Module 2: Member Registration & Profile -->
+    <div class="card">
+      <div class="card-title">Member Registration / Edit</div>
+      <form id="memberForm" onsubmit="saveMember(event)">
+        <input type="hidden" id="editIndex" value="-1">
+        
+        <input type="text" id="mName" placeholder="Full Name" required>
+        <input type="tel" id="mPhone" placeholder="Mobile Number (e.g. 923001234567)" required>
+        
+        <div style="display: flex; gap: 10px;">
+          <input type="date" id="mAdminDate" required>
+          <input type="date" id="mExpDate" required>
         </div>
 
-        <!-- 1. Attendance Tab -->
-        <div id="attendanceTab" class="section-box active">
-            <div class="section-title">
-                <span><i class="fa-solid fa-camera"></i> Live Rear Attendance Scanner</span>
-                <span class="cam-status-label">Environment Cam Active</span>
-            </div>
-            <div class="camera-container">
-                <video id="webcam" autoplay playsinline></video>
-                <div class="cam-overlay">📷 Live Scanner</div>
-            </div>
-            
-            <div class="quick-input-group">
-                <input type="text" id="attendanceInput" class="form-control" placeholder="Enter Member ID (e.g. FG-101) or Phone...">
-                <button class="btn-primary" style="width:140px;" onclick="markAutoAttendance()">Mark</button>
-            </div>
-            <div id="attendanceAlert" class="alert-box hidden"></div>
+        <div class="capture-area">
+          <img id="photoPreview" class="photo-preview" src="https://via.placeholder.com/60" alt="Preview">
+          <button type="button" onclick="capturePhoto()">Capture Photo</button>
         </div>
 
-        <!-- 2. Logs Tab -->
-        <div id="logsTab" class="section-box">
-            <div class="section-title">Today's Attendance Stream</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>ID</th>
-                            <th>Member</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTableBody">
-                        <!-- Dynamic Logs -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 3. Members List Tab -->
-        <div id="membersTab" class="section-box">
-            <div class="section-title">Registered Members List</div>
-            <div class="form-group">
-                <input type="text" id="searchBar" class="form-control" placeholder="Search by ID, Name, or Phone..." onkeyup="filterMembers()">
-            </div>
-            <div id="membersList">
-                <!-- Dynamic Member Cards -->
-            </div>
-        </div>
-
-        <!-- 4. Financial & Expense Tab -->
-        <div id="financeTab" class="section-box">
-            <div class="section-title">Daily Financial Overview</div>
-            <div class="finance-grid">
-                <div class="fin-card">
-                    <span>Cash Collected Today</span>
-                    <h4 id="todayCash">Rs. 0</h4>
-                </div>
-                <div class="fin-card">
-                    <span>Online Collected Today</span>
-                    <h4 id="todayOnline">Rs. 0</h4>
-                </div>
-                <div class="fin-card text-danger">
-                    <span>Total Expenses Today</span>
-                    <h4 id="todayExpenses">Rs. 0</h4>
-                </div>
-                <div class="fin-card highlight text-neon">
-                    <span>Net Profit Today</span>
-                    <h4 id="todayNetProfit">Rs. 0</h4>
-                </div>
-            </div>
-
-            <div style="margin-top:20px;">
-                <div class="section-title">Record Gym Expense</div>
-                <form id="expenseForm" onsubmit="addExpense(event)">
-                    <div class="form-group">
-                        <input type="text" id="expTitle" class="form-control" placeholder="Expense Reason (Rent, Bill, Repair)" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="number" id="expAmount" class="form-control" placeholder="Amount (Rs)" required>
-                    </div>
-                    <div class="form-group">
-                        <select id="expMode" class="form-control">
-                            <option value="Cash">Cash Payment</option>
-                            <option value="Online">Online Bank Transfer</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-danger-btn">Record Expense</button>
-                </form>
-            </div>
-
-            <div style="margin-top:20px;">
-                <div class="section-title">Today's Transactions Audit</div>
-                <div id="auditLogList" class="audit-list"></div>
-            </div>
-        </div>
-
-        <!-- 5. Add Member Tab -->
-        <div id="addTab" class="section-box">
-            <div class="section-title">New Member Registration</div>
-            <form id="addMemberForm" onsubmit="saveMember(event)">
-                <div class="form-group">
-                    <label>Auto-Assigned Recycled ID</label>
-                    <input type="text" id="mAutoId" class="form-control input-disabled" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="mName" class="form-control" required placeholder="Enter member name">
-                </div>
-                <div class="form-group">
-                    <label>Phone Number (WhatsApp)</label>
-                    <input type="text" id="mPhone" class="form-control" required placeholder="03XXXXXXXXX">
-                </div>
-                <div class="form-group">
-                    <label>Admission Date</label>
-                    <input type="date" id="mAdmission" class="form-control" required onchange="autoSetExpiry()">
-                </div>
-                <div class="form-group">
-                    <label>Calculated Expiry Date</label>
-                    <input type="date" id="mExpiry" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Fee Paid (Rs)</label>
-                    <input type="number" id="mFeeAmount" class="form-control" required value="3000">
-                </div>
-                <div class="form-group">
-                    <label>Payment Method</label>
-                    <select id="mPaymentMode" class="form-control">
-                        <option value="Cash">Cash</option>
-                        <option value="Online">Online (Bank / EasyPaisa / JazzCash)</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-primary">Save Member & Record Payment</button>
-            </form>
-        </div>
-
+        <button type="submit" id="saveBtn" style="margin-top: 12px;">Save Member Profile</button>
+      </form>
     </div>
 
-    <script>
-        // Data Store
-        let members = JSON.parse(localStorage.getItem('fg_members')) || [];
-        let logs = JSON.parse(localStorage.getItem('fg_logs')) || [];
-        let expenses = JSON.parse(localStorage.getItem('fg_expenses')) || [];
-        let payments = JSON.parse(localStorage.getItem('fg_payments')) || [];
-        let recycledIds = JSON.parse(localStorage.getItem('fg_recycled_ids')) || [];
+  </div>
 
-        // Clock Engine
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+  <!-- Module 3: Search & Member Administration -->
+  <div class="card" style="margin-top: 20px;">
+    <div class="card-title">Member Search & Administration</div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search by Name or Membership ID (e.g., A-1)..." onkeyup="renderMembers()">
+    </div>
+    
+    <div class="member-list" id="memberList">
+      <!-- Dynamic Member Items Will Render Here -->
+    </div>
+  </div>
+
+  <script>
+    // --- Data Storage ---
+    let members = JSON.parse(localStorage.getItem('gym_members')) || [];
+    let capturedImageData = '';
+
+    // --- Digital Clock ---
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // --- Audio Feedback Cues ---
+    function playAudioCue(type) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'ok') {
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // High pitch OK
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      } else {
+        osc.frequency.setValueAtTime(220, ctx.currentTime); // Low pitch Beep
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      }
+    }
+
+    // --- Back Camera Setup ---
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } }
+        });
+        document.getElementById('scannerVideo').srcObject = stream;
+      } catch (err) {
+        // Fallback to default camera if exact back camera isn't accessible
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          document.getElementById('scannerVideo').srcObject = fallbackStream;
+        } catch (e) {
+          console.error("Camera access error: ", e);
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+      }
+    }
+    initCamera();
 
-        // Switch Tabs Engine
-        function switchTab(tabId, evt) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.section-box').forEach(sec => sec.classList.remove('active'));
-            
-            if (evt && evt.target) {
-                evt.target.classList.add('active');
-            }
-            document.getElementById(tabId).classList.add('active');
+    // --- Capture Photo for Registration ---
+    function capturePhoto() {
+      const video = document.getElementById('scannerVideo');
+      const canvas = document.createElement('canvas');
+      canvas.width = 150;
+      canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, 150, 150);
+      capturedImageData = canvas.toDataURL('image/png');
+      document.getElementById('photoPreview').src = capturedImageData;
+    }
 
-            if (tabId === 'attendanceTab') {
-                startBackCamera();
-            } else if (tabId === 'addTab') {
-                initAddMemberForm();
-            }
-        }
+    // --- Auto ID Generation (Format: A-1, A-2) ---
+    function generateNextID() {
+      if (members.length === 0) return 'A-1';
+      const lastItem = members[members.length - 1];
+      const parts = lastItem.id.split('-');
+      const nextNum = parseInt(parts[1] || '0') + 1;
+      return `A-${nextNum}`;
+    }
 
-        // Camera Engine (Back/Rear Facing)
-        async function startBackCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" } }
-                });
-                document.getElementById('webcam').srcObject = stream;
-            } catch (err) {
-                try {
-                    const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    document.getElementById('webcam').srcObject = fallbackStream;
-                } catch(e) {
-                    console.log("Camera access restricted");
-                }
-            }
-        }
+    // --- Save / Edit Member ---
+    function saveMember(e) {
+      e.preventDefault();
+      const editIndex = parseInt(document.getElementById('editIndex').value);
+      
+      const name = document.getElementById('mName').value.trim();
+      const phone = document.getElementById('mPhone').value.trim();
+      const adminDate = document.getElementById('mAdminDate').value;
+      const expDate = document.getElementById('mExpDate').value;
+      const photo = capturedImageData || 'https://via.placeholder.com/60';
 
-        // Speech Engine
-        function speakAlert(text) {
-            if ('speechSynthesis' in window) {
-                const utter = new SpeechSynthesisUtterance(text);
-                window.speechSynthesis.speak(utter);
-            }
-        }
-
-        // Auto ID Recycling Logic
-        function generateAutoId() {
-            if (recycledIds.length > 0) {
-                recycledIds.sort((a, b) => a - b);
-                const recycledNum = recycledIds.shift();
-                localStorage.setItem('fg_recycled_ids', JSON.stringify(recycledIds));
-                return `FG-${recycledNum}`;
-            }
-            let maxId = 100;
-            members.forEach(m => {
-                const num = parseInt((m.id || '').replace('FG-', ''));
-                if (!isNaN(num) && num > maxId) maxId = num;
-            });
-            return `FG-${maxId + 1}`;
-        }
-
-        // Expiry Date Auto-Calculation
-        function autoSetExpiry() {
-            const admission = document.getElementById('mAdmission').value;
-            if (!admission) return;
-            const date = new Date(admission);
-            date.setMonth(date.getMonth() + 1);
-            document.getElementById('mExpiry').value = date.toISOString().split('T')[0];
-        }
-
-        function initAddMemberForm() {
-            document.getElementById('mAutoId').value = generateAutoId();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('mAdmission').value = today;
-            autoSetExpiry();
-        }
-
-        // Save Member
-        function saveMember(e) {
-            e.preventDefault();
-            const id = document.getElementById('mAutoId').value || generateAutoId();
-            const name = document.getElementById('mName').value.trim();
-            const phone = document.getElementById('mPhone').value.trim();
-            const admissionDate = document.getElementById('mAdmission').value;
-            const expiry = document.getElementById('mExpiry').value;
-            const feeAmount = parseFloat(document.getElementById('mFeeAmount').value) || 0;
-            const paymentMode = document.getElementById('mPaymentMode').value;
-
-            members.push({ id, name, phone, admissionDate, expiry });
-            localStorage.setItem('fg_members', JSON.stringify(members));
-
-            payments.push({
-                id: Date.now(),
-                memberId: id,
-                memberName: name,
-                amount: feeAmount,
-                mode: paymentMode,
-                date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString()
-            });
-            localStorage.setItem('fg_payments', JSON.stringify(payments));
-
-            alert(`Member Registered Successfully! Assigned ID: ${id}`);
-            document.getElementById('addMemberForm').reset();
-            initAddMemberForm();
-            renderMembers();
-            updateDashboard();
-            updateFinanceSummary();
-        }
-
-        // Attendance Verification
-        function markAutoAttendance() {
-            const val = document.getElementById('attendanceInput').value.trim().toLowerCase();
-            const alertBox = document.getElementById('attendanceAlert');
-            alertBox.classList.remove('hidden', 'alert-success', 'alert-danger');
-
-            if (!val) return;
-
-            const m = members.find(item => item.id.toLowerCase() === val || item.phone.includes(val) || item.name.toLowerCase().includes(val));
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            if (!m) {
-                alertBox.classList.add('alert-danger');
-                alertBox.innerText = "Member ID / Phone Not Found!";
-                speakAlert("Member not found");
-                return;
-            }
-
-            const isExpired = new Date(m.expiry) < new Date();
-            const timeStr = new Date().toLocaleTimeString();
-
-            logs.unshift({ time: timeStr, date: todayStr, id: m.id, name: m.name, status: isExpired ? 'Expired' : 'Active' });
-            localStorage.setItem('fg_logs', JSON.stringify(logs));
-
-            if (isExpired) {
-                alertBox.classList.add('alert-danger');
-                alertBox.innerText = `OVERDUE: ${m.name} (${m.id}) - Fee Expired on ${m.expiry}`;
-                speakAlert("Please pay fee");
-            } else {
-                alertBox.classList.add('alert-success');
-                alertBox.innerText = `WELCOME: ${m.name} (${m.id}) - Active Member`;
-                speakAlert("Thank you");
-            }
-
-            document.getElementById('attendanceInput').value = '';
-            renderLogs();
-            updateDashboard();
-        }
-
-        // Expenses Management
-        function addExpense(e) {
-            e.preventDefault();
-            const title = document.getElementById('expTitle').value.trim();
-            const amount = parseFloat(document.getElementById('expAmount').value) || 0;
-            const mode = document.getElementById('expMode').value;
-
-            expenses.push({ title, amount, mode, date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString() });
-            localStorage.setItem('fg_expenses', JSON.stringify(expenses));
-
-            document.getElementById('expenseForm').reset();
-            updateFinanceSummary();
-        }
-
-        // WhatsApp Reminder
-        function sendWhatsApp(phone, name, expiry) {
-            const msg = `Respected ${name}, your Faisal Gym fee expired on ${expiry}. Please clear your dues. Thank you!`;
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
-        // Renewal & Extension
-        function renewMember(id) {
-            let m = members.find(item => item.id === id);
-            if (!m) return;
-
-            let curExpiry = new Date(m.expiry);
-            if (curExpiry < new Date()) curExpiry = new Date();
-            curExpiry.setMonth(curExpiry.getMonth() + 1);
-
-            m.expiry = curExpiry.toISOString().split('T')[0];
-            localStorage.setItem('fg_members', JSON.stringify(members));
-
-            payments.push({
-                id: Date.now(),
-                memberId: m.id,
-                memberName: m.name,
-                amount: 3000,
-                mode: 'Cash',
-                date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString()
-            });
-            localStorage.setItem('fg_payments', JSON.stringify(payments));
-
-            renderMembers();
-            updateDashboard();
-            updateFinanceSummary();
-        }
-
-        // Member Deletion & ID Recycling Queue
-        function deleteMember(id) {
-            if (!confirm(`Delete ${id}? The ID will be recycled.`)) return;
-
-            const num = parseInt(id.replace('FG-', ''));
-            if (!isNaN(num) && !recycledIds.includes(num)) {
-                recycledIds.push(num);
-                localStorage.setItem('fg_recycled_ids', JSON.stringify(recycledIds));
-            }
-
-            members = members.filter(m => m.id !== id);
-            localStorage.setItem('fg_members', JSON.stringify(members));
-
-            renderMembers();
-            updateDashboard();
-        }
-
-        // Render Functions
-        function renderMembers(data = members) {
-            const list = document.getElementById('membersList');
-            list.innerHTML = '';
-
-            data.forEach(m => {
-                const isExpired = new Date(m.expiry) < new Date();
-                list.innerHTML += `
-                    <div class="member-card">
-                        <div class="member-info">
-                            <h4>${m.name} <span class="badge">${m.id}</span></h4>
-                            <p>Phone: ${m.phone} | Expiry: <span class="${isExpired ? 'status-expired' : 'status-active'}">${m.expiry}</span></p>
-                        </div>
-                        <div>
-                            <button class="btn-secondary" onclick="renewMember('${m.id}')">Renew</button>
-                            <button class="btn-whatsapp" onclick="sendWhatsApp('${m.phone}', '${m.name}', '${m.expiry}')"><i class="fa-brands fa-whatsapp"></i> Alert</button>
-                            <button class="btn-delete" onclick="deleteMember('${m.id}')">Delete</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function filterMembers() {
-            const query = document.getElementById('searchBar').value.toLowerCase();
-            const filtered = members.filter(m => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query) || m.phone.includes(query));
-            renderMembers(filtered);
-        }
-
-        function renderLogs() {
-            const tbody = document.getElementById('logsTableBody');
-            tbody.innerHTML = '';
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            logs.filter(l => l.date === todayStr).slice(0, 15).forEach(l => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${l.time}</td>
-                        <td>${l.id}</td>
-                        <td>${l.name}</td>
-                        <td class="${l.status === 'Expired' ? 'status-expired' : 'status-active'}">${l.status}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        function updateFinanceSummary() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayPayments = payments.filter(p => p.date === todayStr);
-            const todayExp = expenses.filter(e => e.date === todayStr);
-
-            const cashSum = todayPayments.filter(p => p.mode === 'Cash').reduce((acc, curr) => acc + curr.amount, 0);
-            const onlineSum = todayPayments.filter(p => p.mode === 'Online').reduce((acc, curr) => acc + curr.amount, 0);
-            const expSum = todayExp.reduce((acc, curr) => acc + curr.amount, 0);
-
-            document.getElementById('todayCash').innerText = `Rs. ${cashSum}`;
-            document.getElementById('todayOnline').innerText = `Rs. ${onlineSum}`;
-            document.getElementById('todayExpenses').innerText = `Rs. ${expSum}`;
-            document.getElementById('todayNetProfit').innerText = `Rs. ${(cashSum + onlineSum) - expSum}`;
-
-            const auditList = document.getElementById('auditLogList');
-            auditList.innerHTML = '';
-            todayPayments.forEach(p => {
-                auditList.innerHTML += `
-                    <div class="audit-item">
-                        <span><strong>${p.memberName}</strong> (${p.memberId})</span>
-                        <span style="color:#00f0ff;">+ Rs. ${p.amount} [${p.mode}]</span>
-                    </div>
-                `;
-            });
-            todayExp.forEach(e => {
-                auditList.innerHTML += `
-                    <div class="audit-item">
-                        <span><strong>Expense: ${e.title}</strong></span>
-                        <span style="color:#ff3366;">- Rs. ${e.amount} [${e.mode}]</span>
-                    </div>
-                `;
-            });
-        }
-
-        function updateDashboard() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const activeCount = members.filter(m => new Date(m.expiry) >= new Date()).length;
-            const overdueCount = members.length - activeCount;
-            const todayAttendance = logs.filter(l => l.date === todayStr).length;
-
-            document.getElementById('totalActiveCount').innerText = activeCount;
-            document.getElementById('feeOverdueCount').innerText = overdueCount;
-            document.getElementById('todayAttendanceCount').innerText = todayAttendance;
-        }
-
-        // Global Setup Initialization
-        window.onload = () => {
-            renderMembers();
-            renderLogs();
-            updateFinanceSummary();
-            updateDashboard();
-            startBackCamera();
+      if (editIndex === -1) {
+        // New Record
+        const newMember = {
+          id: generateNextID(),
+          name,
+          phone,
+          adminDate,
+          expDate,
+          photo
         };
-    </script>
+        members.push(newMember);
+      } else {
+        // Update Existing Record
+        members[editIndex].name = name;
+        members[editIndex].phone = phone;
+        members[editIndex].adminDate = adminDate;
+        members[editIndex].expDate = expDate;
+        if (capturedImageData) members[editIndex].photo = capturedImageData;
+        document.getElementById('editIndex').value = -1;
+        document.getElementById('saveBtn').innerText = 'Save Member Profile';
+      }
+
+      localStorage.setItem('gym_members', JSON.stringify(members));
+      document.getElementById('memberForm').reset();
+      document.getElementById('photoPreview').src = 'https://via.placeholder.com/60';
+      capturedImageData = '';
+      renderMembers();
+    }
+
+    // --- Edit Member Profile ---
+    function editMember(index) {
+      const m = members[index];
+      document.getElementById('mName').value = m.name;
+      document.getElementById('mPhone').value = m.phone;
+      document.getElementById('mAdminDate').value = m.adminDate;
+      document.getElementById('mExpDate').value = m.expDate;
+      document.getElementById('photoPreview').src = m.photo;
+      document.getElementById('editIndex').value = index;
+      document.getElementById('saveBtn').innerText = 'Update Member Profile';
+    }
+
+    // --- Delete Member Profile ---
+    function deleteMember(index) {
+      if (confirm('Are you sure you want to delete this member?')) {
+        members.splice(index, 1);
+        localStorage.setItem('gym_members', JSON.stringify(members));
+        renderMembers();
+      }
+    }
+
+    // --- Send WhatsApp Message ---
+    function sendWhatsApp(phone, name, id, isPaid) {
+      const msg = isPaid 
+        ? `Dear ${name} (ID: ${id}), your gym fee payment is confirmed. Thank you!`
+        : `Dear ${name} (ID: ${id}), your gym fee is due. Please clear your payment.`;
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    }
+
+    // --- Render Member List with Search ---
+    function renderMembers() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const listContainer = document.getElementById('memberList');
+      listContainer.innerHTML = '';
+
+      const today = new Date().toISOString().split('T')[0];
+
+      members.forEach((m, index) => {
+        if (m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) {
+          const isPaid = m.expDate >= today;
+          
+          const item = document.createElement('div');
+          item.className = 'member-item';
+          item.innerHTML = `
+            <img src="${m.photo}" alt="Member Photo">
+            <div class="member-info">
+              <h4>${m.name} <span class="badge ${isPaid ? 'badge-green' : 'badge-red'}">${m.id}</span></h4>
+              <p>Phone: ${m.phone}</p>
+              <p>Expires: ${m.expDate} (${isPaid ? 'PAID' : 'DUE'})</p>
+            </div>
+            <div class="action-btns">
+              <button class="btn-whatsapp" onclick="sendWhatsApp('${m.phone}', '${m.name}', '${m.id}', ${isPaid})">WA</button>
+              <button onclick="editMember(${index})">Edit</button>
+              <button class="btn-danger" onclick="deleteMember(${index})">Delete</button>
+            </div>
+          `;
+          listContainer.appendChild(item);
+        }
+      });
+    }
+
+    // --- Live Scanner Visual Feedback Simulation ---
+    function triggerManualScan() {
+      if (members.length === 0) {
+        alert('No members found. Please register a member first.');
+        return;
+      }
+
+      // Pick a member to simulate detection
+      const randomMember = members[Math.floor(Math.random() * members.length)];
+      const today = new Date().toISOString().split('T')[0];
+      const isPaid = randomMember.expDate >= today;
+
+      const overlay = document.getElementById('scanOverlay');
+      const scanName = document.getElementById('scanName');
+      const scanStatus = document.getElementById('scanStatus');
+
+      scanName.innerText = `${randomMember.name} (${randomMember.id})`;
+      
+      if (isPaid) {
+        overlay.className = 'scan-overlay green';
+        scanStatus.innerText = 'FEE PAID - ACCESS GRANTED';
+        playAudioCue('ok');
+      } else {
+        overlay.className = 'scan-overlay red';
+        scanStatus.innerText = 'FEE DUE - OVERDUE';
+        playAudioCue('beep');
+      }
+
+      setTimeout(() => {
+        overlay.className = 'scan-overlay';
+      }, 3000);
+    }
+
+    // Initial Render
+    renderMembers();
+  </script>
 </body>
 </html>
