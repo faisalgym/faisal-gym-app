@@ -117,7 +117,7 @@
     <div class="card">
       <div class="card-title">Live Camera Auto Scanner</div>
       <div class="scanner-box" id="scannerContainer">
-        <div class="scan-status-tag" id="aiStatus">HIGH-PRECISION SCANNING 🟢</div>
+        <div class="scan-status-tag" id="aiStatus">BALANCED SCANNING 🟢</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
@@ -313,16 +313,16 @@
 
       for (let m of members) {
         if (!m.fingerprint) continue;
-        
         if (isAlreadyScannedToday(m.code)) continue;
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
         
-        // Threshold adjusted to 12 for better light tolerance
-        if (diff < 12) {
+        // Balanced Threshold: 16 (prevents unwanted false scans)
+        if (diff < 16) {
           scanCooldown = true;
           triggerScanOverlay(m);
-          setTimeout(() => { scanCooldown = false; }, 4000);
+          // 6 Seconds delay before accepting another scan
+          setTimeout(() => { scanCooldown = false; }, 6000);
           break;
         }
       }
@@ -371,7 +371,7 @@
 
     function triggerScanOverlay(member) {
       const today = new Date().toISOString().split('T')[0];
-      const isPaid = member.expDate >= today;
+      const isPaid = mExpDate >= today;
       const overlay = document.getElementById('scanOverlay');
       
       document.getElementById('scanName').innerText = `${member.name} (${member.code})`;
