@@ -63,6 +63,11 @@
     .scan-overlay.green { display: block; background: rgba(0, 230, 118, 0.95); color: #000; border: 2px solid var(--green-color); }
     .scan-overlay.red { display: block; background: rgba(255, 42, 75, 0.95); color: #fff; border: 2px solid var(--red-color); }
 
+    .quick-reg-btn {
+      display: inline-block; margin-top: 8px; padding: 6px 12px; background: #fff; color: #000;
+      border-radius: 4px; font-size: 0.8rem; font-weight: bold; cursor: pointer; border: none;
+    }
+
     .form-group { margin-top: 8px; }
     .form-group label { font-size: 0.75rem; color: #8fa0bc; display: block; margin-bottom: 3px; }
     
@@ -129,6 +134,9 @@
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
           <div id="scanStatus" style="font-size:0.95rem; margin-top:4px;">STATUS</div>
+          <div id="quickRegBox" style="display:none;">
+            <button class="quick-reg-btn" onclick="quickRegisterUnknown()">⚡ Register This Face</button>
+          </div>
         </div>
       </div>
       <button onclick="manualScanSearch()" class="btn-secondary">🔍 Code Search / Manual Check</button>
@@ -213,8 +221,10 @@
     let members = JSON.parse(localStorage.getItem('gym_members')) || [];
     let attendanceLogs = JSON.parse(localStorage.getItem('gym_attendance')) || [];
     let capturedImageData = '';
+    let lastUnknownFrame = '';
     let audioCtx = null;
     let scanCooldown = false;
+    let unknownCounter = 0;
 
     function updateClock() {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
@@ -245,12 +255,18 @@
           gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
           osc.start(); 
           osc.stop(audioCtx.currentTime + 0.2);
-        } else {
+        } else if (type === 'due') {
           osc.type = 'sawtooth'; 
           osc.frequency.setValueAtTime(220, audioCtx.currentTime);
           gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
           osc.start(); 
           osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'unknown') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.5);
         }
       } catch (e) {
         console.log("Audio Error:", e);
@@ -287,7 +303,7 @@
           }
         }
       }
-      setInterval(autoScanLoop, 300);
+      setInterval(autoScanLoop, 350);
     }
 
     function getImageFingerprint(imgSource) {
@@ -320,25 +336,76 @@
     }
 
     function autoScanLoop() {
-      if (scanCooldown || members.length === 0) return;
+      if (scanCooldown) return;
       const video = document.getElementById('scannerVideo');
       if (!video.videoWidth) return;
 
       const currentFP = getImageFingerprint(video);
 
+      let foundMember = null;
+      let minDiff = 999;
+
       for (let m of members) {
         if (!m.fingerprint) continue;
-        if (isAlreadyScannedToday(m.code)) continue;
-
         let diff = compareFingerprints(currentFP, m.fingerprint);
-        
-        if (diff < 0.22) {
-          scanCooldown = true;
-          triggerScanOverlay(m);
-          setTimeout(() => { scanCooldown = false; }, 3000);
-          break;
+        if (diff < minDiff) {
+          minDiff = diff;
+          foundMember = m;
         }
       }
+
+      // Member Matched
+      if (foundMember && minDiff < 0.22) {
+        if (!isAlreadyScannedToday(foundMember.code)) {
+          scanCooldown = true;
+          triggerScanOverlay(foundMember);
+          setTimeout(() => { scanCooldown = false; }, 3000);
+        }
+        unknownCounter = 0;
+      } else {
+        // Unknown Person Detection logic
+        unknownCounter++;
+        if (unknownCounter > 6) { // Continual motion/unregistered face presence
+          scanCooldown = true;
+          captureUnknownFrame();
+          triggerUnknownOverlay();
+          unknownCounter = 0;
+          setTimeout(() => { scanCooldown = false; }, 4000);
+        }
+      }
+    }
+
+    function captureUnknownFrame() {
+      const video = document.getElementById('scannerVideo');
+      const canvas = document.createElement('canvas');
+      canvas.width = 220; canvas.height = 220;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, 220, 220);
+      lastUnknownFrame = canvas.toDataURL('image/png');
+    }
+
+    function triggerUnknownOverlay() {
+      const overlay = document.getElementById('scanOverlay');
+      document.getElementById('scanName').innerText = "⚠️ UNKNOWN PERSON";
+      document.getElementById('scanStatus').innerText = "NOT REGISTERED IN SYSTEM";
+      document.getElementById('quickRegBox').style.display = 'block';
+      overlay.className = 'scan-overlay red';
+
+      playSound('unknown');
+      logAttendance({ code: 'UNK', name: 'Unknown Person' }, false);
+
+      setTimeout(() => { 
+        overlay.className = 'scan-overlay'; 
+        document.getElementById('quickRegBox').style.display = 'none';
+      }, 3500);
+    }
+
+    function quickRegisterUnknown() {
+      if (!lastUnknownFrame) return;
+      capturedImageData = lastUnknownFrame;
+      document.getElementById('photoPreview').src = capturedImageData;
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('mName').focus();
     }
 
     function logAttendance(member, isPaid) {
@@ -351,7 +418,7 @@
         dateOnly: dateStr,
         code: member.code,
         name: member.name,
-        status: isPaid ? 'PAID' : 'DUE'
+        status: member.code === 'UNK' ? 'UNREGISTERED' : (isPaid ? 'PAID' : 'DUE')
       });
 
       if (attendanceLogs.length > 100) attendanceLogs.pop();
@@ -388,6 +455,7 @@
       const isPaid = member.expDate >= today;
       const overlay = document.getElementById('scanOverlay');
       
+      document.getElementById('quickRegBox').style.display = 'none';
       document.getElementById('scanName').innerText = `${member.name} (${member.code})`;
       overlay.className = `scan-overlay ${isPaid ? 'green' : 'red'}`;
       document.getElementById('scanStatus').innerText = isPaid ? 'FEE PAID - ACCESS GRANTED' : 'FEE DUE - OVERDUE';
