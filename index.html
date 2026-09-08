@@ -256,14 +256,20 @@
     async function startCamera() {
       const video = document.getElementById('scannerVideo');
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        // BACK CAMERA / REAR CAMERA SETTING
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } }, audio: false });
         video.srcObject = stream;
       } catch (err) {
         try {
-          const fallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          const fallback = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
           video.srcObject = fallback;
         } catch(e) {
-          alert("Camera enable nahi ho saka.");
+          try {
+            const lastTry = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            video.srcObject = lastTry;
+          } catch(errFinal) {
+            alert("Camera enable nahi ho saka.");
+          }
         }
       }
       setInterval(autoScanLoop, 250);
@@ -311,7 +317,6 @@
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
         
-        // Fast & Balanced Auto Face Sensitivity Threshold
         if (diff < 18) {
           scanCooldown = true;
           triggerScanOverlay(m);
