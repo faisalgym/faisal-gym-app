@@ -118,7 +118,7 @@
     <div class="card">
       <div class="card-title">Live Camera Auto Scanner</div>
       <div class="scanner-box" id="scannerContainer">
-        <div class="scan-status-tag" id="aiStatus">LIVE SCANNING 🟢</div>
+        <div class="scan-status-tag" id="aiStatus">HIGH-PRECISION SCANNING 🟢</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
@@ -202,7 +202,7 @@
     <div class="member-list" id="memberList"></div>
   </div>
 
-  <canvas id="hiddenCanvas" style="display:none;" width="100" height="100"></canvas>
+  <canvas id="hiddenCanvas" style="display:none;" width="64" height="64"></canvas>
 
   <script>
     let members = JSON.parse(localStorage.getItem('gym_members')) || [];
@@ -271,27 +271,38 @@
           video.srcObject = defaultCam;
         }
       }
-      setInterval(autoScanLoop, 300);
+      setInterval(autoScanLoop, 500); // 500ms for stable detection
     }
 
+    // Improved Multi-Point Color Pattern Matcher
     function getImageFingerprint(imgSource) {
       const canvas = document.getElementById('hiddenCanvas');
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(imgSource, 0, 0, 100, 100);
-      const data = ctx.getImageData(0, 0, 100, 100).data;
-      let r = 0, g = 0, b = 0;
-      for (let i = 0; i < data.length; i += 16) {
-        r += data[i]; g += data[i+1]; b += data[i+2];
+      ctx.drawImage(imgSource, 0, 0, 64, 64);
+      const data = ctx.getImageData(0, 0, 64, 64).data;
+      
+      let grid = [];
+      // Sample 16 key regions across the face image
+      for (let y = 0; y < 64; y += 16) {
+        for (let x = 0; x < 64; x += 16) {
+          let idx = (y * 64 + x) * 4;
+          grid.push({ r: data[idx], g: data[idx+1], b: data[idx+2] });
+        }
       }
-      return { r: r/625, g: g/625, b: b/625 };
+      return grid;
     }
 
     function compareFingerprints(fp1, fp2) {
-      if (!fp1 || !fp2) return 999;
-      return Math.abs(fp1.r - fp2.r) + Math.abs(fp1.g - fp2.g) + Math.abs(fp1.b - fp2.b);
+      if (!fp1 || !fp2 || fp1.length !== fp2.length) return 999;
+      let totalDiff = 0;
+      for (let i = 0; i < fp1.length; i++) {
+        totalDiff += Math.abs(fp1[i].r - fp2[i].r) + 
+                   Math.abs(fp1[i].g - fp2[i].g) + 
+                   Math.abs(fp1[i].b - fp2[i].b);
+      }
+      return totalDiff / fp1.length;
     }
 
-    // Checking if member already scanned TODAY
     function isAlreadyScannedToday(memberCode) {
       const todayDate = new Date().toISOString().split('T')[0];
       return attendanceLogs.some(log => log.code === memberCode && log.dateOnly === todayDate);
@@ -307,14 +318,16 @@
       for (let m of members) {
         if (!m.fingerprint) continue;
         
-        // Skip if member already scanned today
+        // Pehle se hi aaj ki attendance lagi ho toh skip karein
         if (isAlreadyScannedToday(m.code)) continue;
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
-        if (diff < 20) {
+        
+        // Strict threshold check (< 6) for precise match
+        if (diff < 6) {
           scanCooldown = true;
           triggerScanOverlay(m);
-          setTimeout(() => { scanCooldown = false; }, 3500);
+          setTimeout(() => { scanCooldown = false; }, 4000);
           break;
         }
       }
@@ -333,7 +346,7 @@
         status: isPaid ? 'PAID' : 'DUE'
       });
 
-      if (attendanceLogs.length > 100) attendanceLogs.pop(); // Keeps recent 100 logs
+      if (attendanceLogs.length > 100) attendanceLogs.pop();
       localStorage.setItem('gym_attendance', JSON.stringify(attendanceLogs));
       renderAttendanceLog();
     }
