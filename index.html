@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Faisal Gym Management</title>
-  <!-- Fast Face-API Library -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
   <style>
     :root {
       --bg-color: #0b1320;
@@ -21,7 +19,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: var(--bg-color); color: var(--text-color); padding: 12px; }
 
-    /* Header */
     header {
       display: flex; justify-content: space-between; align-items: center;
       background: var(--card-bg); padding: 12px 15px; border-radius: 10px;
@@ -35,14 +32,12 @@
       padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent-color); color: var(--accent-color);
     }
 
-    /* Layout */
     .container { display: grid; grid-template-columns: 1fr; gap: 15px; }
     @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } }
 
     .card { background: var(--card-bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); }
     .card-title { font-size: 1rem; color: var(--accent-color); margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
 
-    /* Scanner View */
     .scanner-box {
       position: relative; width: 100%; height: 240px; background: #050911;
       border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border-color);
@@ -51,7 +46,7 @@
     
     .scan-status-tag {
       position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7);
-      padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; color: #8fa0bc; z-index: 5;
+      padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; color: #00e676; z-index: 5; font-weight: bold;
     }
 
     .scan-overlay {
@@ -62,7 +57,6 @@
     .scan-overlay.green { display: block; background: rgba(0, 230, 118, 0.95); color: #000; border: 2px solid var(--green-color); }
     .scan-overlay.red { display: block; background: rgba(255, 42, 75, 0.95); color: #fff; border: 2px solid var(--red-color); }
 
-    /* Form Fields Layout */
     .form-group { margin-top: 8px; }
     .form-group label { font-size: 0.75rem; color: #8fa0bc; display: block; margin-bottom: 3px; }
     
@@ -86,7 +80,6 @@
     .capture-area { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
     .photo-preview { width: 55px; height: 55px; border-radius: 6px; background: #050911; border: 1px solid var(--border-color); object-fit: cover; }
 
-    /* Member List Cards */
     .member-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; margin-top: 10px; }
     .member-card {
       display: flex; align-items: center; gap: 10px; background: #050911;
@@ -107,7 +100,6 @@
 </head>
 <body>
 
-  <!-- Header -->
   <header>
     <div class="brand">
       <img src="https://i.postimg.cc/3RX1JwMh/FB-IMG-1785949977671.jpg" alt="Logo">
@@ -117,12 +109,10 @@
   </header>
 
   <div class="container">
-    
-    <!-- Module 1: Live Back Camera Auto Face Scanner -->
     <div class="card">
-      <div class="card-title">Auto Face Scanner (Back Camera)</div>
+      <div class="card-title">Auto Face Scanner (Active)</div>
       <div class="scanner-box" id="scannerContainer">
-        <div class="scan-status-tag" id="aiStatus">AI Loading...</div>
+        <div class="scan-status-tag" id="aiStatus">AUTO SCAN ACTIVE 🟢</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
@@ -132,10 +122,9 @@
       <button onclick="manualScanSearch()" class="btn-secondary">🔍 Code Search / Manual Check</button>
     </div>
 
-    <!-- Module 2: Member Form -->
     <div class="card" id="formCard">
       <div class="card-title" id="formTitle">Member Profile Form</div>
-      <form id="memberForm" onsubmit="saveMember(event)">
+      <form id="memberForm" onsubmit="event.preventDefault(); saveMember();">
         <input type="hidden" id="editIndex" value="-1">
         
         <div class="form-group">
@@ -173,10 +162,8 @@
         <button type="button" id="cancelEditBtn" onclick="resetForm()" class="btn-secondary" style="display:none; margin-top: 5px;">Cancel Editing</button>
       </form>
     </div>
-
   </div>
 
-  <!-- Module 3: Saved Profiles & Data Backup -->
   <div class="card" style="margin-top: 15px;">
     <div class="card-title">
       <span>Saved Member Profiles</span>
@@ -185,66 +172,52 @@
     
     <input type="text" id="searchInput" placeholder="Search Profile by Name or Code (e.g. A-1)..." onkeyup="renderMembers()" style="margin-top:5px;">
     
-    <div class="member-list" id="memberList">
-      <!-- Member Cards Render Here -->
-    </div>
+    <div class="member-list" id="memberList"></div>
   </div>
+
+  <canvas id="hiddenCanvas" style="display:none;" width="100" height="100"></canvas>
 
   <script>
     let members = JSON.parse(localStorage.getItem('gym_members')) || [];
     let capturedImageData = '';
-    let labeledDescriptors = [];
     let audioCtx = null;
+    let scanCooldown = false;
 
-    // Clock
     function updateClock() {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Sound Synthesizer
     function playSound(type) {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        osc.connect(gain); gain.connect(audioCtx.destination);
 
         if (type === 'paid') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
           gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.15);
-          
+          osc.start(); osc.stop(audioCtx.currentTime + 0.15);
           setTimeout(() => {
-            const osc2 = audioCtx.createOscillator();
-            const gain2 = audioCtx.createGain();
-            osc2.connect(gain2);
-            gain2.connect(audioCtx.destination);
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(1760, audioCtx.currentTime);
+            const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+            osc2.connect(gain2); gain2.connect(audioCtx.destination);
+            osc2.type = 'sine'; osc2.frequency.setValueAtTime(1760, audioCtx.currentTime);
             gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc2.start();
-            osc2.stop(audioCtx.currentTime + 0.2);
+            osc2.start(); osc2.stop(audioCtx.currentTime + 0.2);
           }, 150);
         } else {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
           gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.4);
+          osc.start(); osc.stop(audioCtx.currentTime + 0.4);
         }
       } catch (e) {}
     }
 
-    // Auto Code Generation
     function generateNextCode() {
       const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
       const assignedCodes = new Set(members.map(m => m.code));
-
       for (let l of letters) {
         for (let i = 1; i <= 100; i++) {
           let code = `${l}-${i}`;
@@ -254,15 +227,11 @@
       return 'FULL';
     }
 
-    // Back Camera & Face Detection Initialization
-    async function startCameraAndFaceDetection() {
+    async function startCamera() {
       const video = document.getElementById('scannerVideo');
-      const aiStatus = document.getElementById('aiStatus');
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: "environment" } },
-          audio: false
+          video: { facingMode: { exact: "environment" } }, audio: false
         });
         video.srcObject = stream;
       } catch (err) {
@@ -274,56 +243,45 @@
           video.srcObject = defaultCam;
         }
       }
+      setInterval(autoScanLoop, 300);
+    }
 
-      try {
-        aiStatus.innerText = 'Loading Models...';
-        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceLandmark64Net.loadFromUri(MODEL_URL);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-        
-        aiStatus.innerText = 'Auto Face Scanner Active 🟢';
-        aiStatus.style.color = '#00e676';
-        
-        startAutoScanning();
-      } catch (err) {
-        aiStatus.innerText = 'Scanner Ready (Manual Mode)';
+    function getImageFingerprint(imgSource) {
+      const canvas = document.getElementById('hiddenCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgSource, 0, 0, 100, 100);
+      const data = ctx.getImageData(0, 0, 100, 100).data;
+      let r = 0, g = 0, b = 0;
+      for (let i = 0; i < data.length; i += 16) {
+        r += data[i]; g += data[i+1]; b += data[i+2];
+      }
+      return { r: r/625, g: g/625, b: b/625 };
+    }
+
+    function compareFingerprints(fp1, fp2) {
+      if (!fp1 || !fp2) return 999;
+      return Math.abs(fp1.r - fp2.r) + Math.abs(fp1.g - fp2.g) + Math.abs(fp1.b - fp2.b);
+    }
+
+    function autoScanLoop() {
+      if (scanCooldown || members.length === 0) return;
+      const video = document.getElementById('scannerVideo');
+      if (!video.videoWidth) return;
+
+      const currentFP = getImageFingerprint(video);
+
+      for (let m of members) {
+        if (!m.fingerprint) continue;
+        let diff = compareFingerprints(currentFP, m.fingerprint);
+        if (diff < 18) {
+          scanCooldown = true;
+          triggerScanOverlay(m);
+          setTimeout(() => { scanCooldown = false; }, 3500);
+          break;
+        }
       }
     }
 
-    // Fully Automatic Background Face Scanning Loop
-    function startAutoScanning() {
-      const video = document.getElementById('scannerVideo');
-      let scanCooldown = false;
-
-      setInterval(async () => {
-        if (scanCooldown || members.length === 0 || video.paused || video.ended) return;
-
-        try {
-          // Optimized for faster auto detection
-          const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 }))
-                                          .withFaceLandmarks()
-                                          .withFaceDescriptor();
-
-          if (detection && labeledDescriptors.length > 0) {
-            // Distance 0.65 for high accuracy auto recognition
-            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.65);
-            const match = faceMatcher.findBestMatch(detection.descriptor);
-
-            if (match.label !== 'unknown') {
-              scanCooldown = true;
-              const matchedMember = members.find(m => m.code === match.label);
-              if (matchedMember) {
-                triggerScanOverlay(matchedMember);
-              }
-              setTimeout(() => { scanCooldown = false; }, 3500);
-            }
-          }
-        } catch (e) {}
-      }, 500); // Fast scan every 0.5s
-    }
-
-    // Trigger Overlay Status & Sound Play
     function triggerScanOverlay(member) {
       const today = new Date().toISOString().split('T')[0];
       const isPaid = member.expDate >= today;
@@ -334,11 +292,9 @@
       document.getElementById('scanStatus').innerText = isPaid ? 'FEE PAID - ACCESS GRANTED' : 'FEE DUE - OVERDUE';
 
       playSound(isPaid ? 'paid' : 'due');
-
       setTimeout(() => { overlay.className = 'scan-overlay'; }, 3000);
     }
 
-    // Photo Capture
     function capturePhoto() {
       const video = document.getElementById('scannerVideo');
       if (!video.srcObject) return alert('Camera enable hona zaroori hai.');
@@ -351,7 +307,6 @@
       document.getElementById('photoPreview').src = capturedImageData;
     }
 
-    // Auto Expiry Logic
     function setAutoExpiry() {
       const adminVal = document.getElementById('mAdminDate').value;
       if (!adminVal) return;
@@ -360,10 +315,9 @@
       document.getElementById('mExpDate').value = d.toISOString().split('T')[0];
     }
 
-    // Form Reset
     function resetForm() {
       document.getElementById('memberForm').reset();
-      document.getElementById('editIndex').value = -1;
+      document.getElementById('editIndex').value = "-1";
       document.getElementById('mCode').value = generateNextCode();
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('mAdminDate').value = today;
@@ -375,46 +329,37 @@
       document.getElementById('cancelEditBtn').style.display = 'none';
     }
 
-    // Save or Update Member
-    async function saveMember(e) {
-      e.preventDefault();
-      const editIndex = parseInt(document.getElementById('editIndex').value);
+    function saveMember() {
+      const editIdx = parseInt(document.getElementById('editIndex').value);
       const code = document.getElementById('mCode').value;
       const name = document.getElementById('mName').value.trim();
       const phone = document.getElementById('mPhone').value.trim();
       const adminDate = document.getElementById('mAdminDate').value;
       const expDate = document.getElementById('mExpDate').value;
-      const photo = capturedImageData || (editIndex !== -1 ? members[editIndex].photo : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2321324e"><rect width="100%" height="100%"/></svg>');
+      
+      let photo = capturedImageData;
+      if (!photo && editIdx !== -1) photo = members[editIdx].photo;
+      if (!photo) photo = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2321324e"><rect width="100%" height="100%"/></svg>';
 
-      if (editIndex === -1) {
-        members.push({ code, name, phone, adminDate, expDate, photo });
-      } else {
-        members[editIndex] = { code, name, phone, adminDate, expDate, photo };
-      }
+      const tempImg = new Image();
+      tempImg.src = photo;
+      tempImg.onload = function() {
+        const fp = getImageFingerprint(tempImg);
+        const memberData = { code, name, phone, adminDate, expDate, photo, fingerprint: fp };
 
-      localStorage.setItem('gym_members', JSON.stringify(members));
-      resetForm();
-      renderMembers();
-      await updateFaceDescriptors();
-    }
-
-    // Update Face Recognition Data
-    async function updateFaceDescriptors() {
-      labeledDescriptors = [];
-      for (let m of members) {
-        if (m.photo && m.photo.startsWith('data:image')) {
-          try {
-            const img = await faceapi.fetchImage(m.photo);
-            const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-            if (detection) {
-              labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(m.code, [detection.descriptor]));
-            }
-          } catch(e) {}
+        if (editIdx === -1) {
+          members.push(memberData);
+        } else {
+          members[editIdx] = memberData;
         }
-      }
+
+        localStorage.setItem('gym_members', JSON.stringify(members));
+        resetForm();
+        renderMembers();
+        alert(editIdx === -1 ? 'Member Add Ho Gaya!' : 'Profile Update Ho Gayi!');
+      };
     }
 
-    // Edit Member (Opens Profile in Form)
     function editMember(index) {
       const m = members[index];
       document.getElementById('editIndex').value = index;
@@ -430,29 +375,24 @@
       document.getElementById('formTitle').innerText = `Edit Profile (${m.code})`;
       document.getElementById('cancelEditBtn').style.display = 'block';
 
-      // Smooth scroll back to form
       document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Delete Member
     function deleteMember(index) {
-      if (confirm(`Are you sure you want to delete profile ${members[index].code}?`)) {
+      if (confirm(`Profile ${members[index].code} ko delete kar dein?`)) {
         members.splice(index, 1);
         localStorage.setItem('gym_members', JSON.stringify(members));
         resetForm();
         renderMembers();
-        updateFaceDescriptors();
       }
     }
 
-    // Format Phone Number
     function formatPhone(phone) {
       let clean = phone.replace(/\D/g, '');
       if (clean.startsWith('0')) clean = '92' + clean.substring(1);
       return clean;
     }
 
-    // Render Saved Profiles List
     function renderMembers() {
       const query = document.getElementById('searchInput').value.toLowerCase().trim();
       const list = document.getElementById('memberList');
@@ -489,18 +429,15 @@
       });
     }
 
-    // Manual Code Search
     function manualScanSearch() {
-      if (members.length === 0) return alert('Pehle kam se kam ek member register karein.');
-      const inputCode = prompt("Enter Member Code (e.g., A-1):");
+      if (members.length === 0) return alert('Pehle kisi member ko register karein.');
+      const inputCode = prompt("Enter Member Code (e.g. A-1):");
       if (!inputCode) return;
-
       const m = members.find(item => item.code.toLowerCase() === inputCode.trim().toLowerCase());
       if (!m) return alert('Member nahi mila!');
       triggerScanOverlay(m);
     }
 
-    // Backup Data
     function exportData() {
       if (members.length === 0) return alert('Backup ke liye koi data nahi hai.');
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(members, null, 2));
@@ -512,12 +449,10 @@
       downloadAnchor.remove();
     }
 
-    // Startup
     window.addEventListener('DOMContentLoaded', () => {
-      startCameraAndFaceDetection();
+      startCamera();
       resetForm();
       renderMembers();
-      setTimeout(updateFaceDescriptors, 2500);
     });
   </script>
 </body>
