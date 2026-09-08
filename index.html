@@ -97,7 +97,6 @@
     .action-btns { display: flex; gap: 4px; }
     .action-btns button, .action-btns a { margin-top: 0; width: auto; padding: 6px 10px; font-size: 0.8rem; }
 
-    /* Attendance Log Styling */
     .attendance-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.82rem; }
     .attendance-table th, .attendance-table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
     .attendance-table th { background: #050911; color: var(--accent-color); }
@@ -170,7 +169,6 @@
     </div>
   </div>
 
-  <!-- Attendance History Section -->
   <div class="card" style="margin-top: 15px;">
     <div class="card-title">
       <span>Daily Attendance History Log 📋</span>
@@ -271,10 +269,9 @@
           video.srcObject = defaultCam;
         }
       }
-      setInterval(autoScanLoop, 500); // 500ms for stable detection
+      setInterval(autoScanLoop, 500);
     }
 
-    // Improved Multi-Point Color Pattern Matcher
     function getImageFingerprint(imgSource) {
       const canvas = document.getElementById('hiddenCanvas');
       const ctx = canvas.getContext('2d');
@@ -282,7 +279,6 @@
       const data = ctx.getImageData(0, 0, 64, 64).data;
       
       let grid = [];
-      // Sample 16 key regions across the face image
       for (let y = 0; y < 64; y += 16) {
         for (let x = 0; x < 64; x += 16) {
           let idx = (y * 64 + x) * 4;
@@ -318,13 +314,12 @@
       for (let m of members) {
         if (!m.fingerprint) continue;
         
-        // Pehle se hi aaj ki attendance lagi ho toh skip karein
         if (isAlreadyScannedToday(m.code)) continue;
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
         
-        // Strict threshold check (< 6) for precise match
-        if (diff < 6) {
+        // Threshold adjusted to 12 for better light tolerance
+        if (diff < 12) {
           scanCooldown = true;
           triggerScanOverlay(m);
           setTimeout(() => { scanCooldown = false; }, 4000);
