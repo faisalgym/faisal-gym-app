@@ -109,7 +109,7 @@
     .log-box { max-height: 200px; overflow-y: auto; }
   </style>
 </head>
-<body>
+<body onclick="initAudio()">
 
   <header>
     <div class="brand">
@@ -222,23 +222,39 @@
     setInterval(updateClock, 1000);
     updateClock();
 
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
     function playSound(type) {
       try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        initAudio();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.connect(gain); 
+        gain.connect(audioCtx.destination);
 
         if (type === 'paid') {
-          osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-        } else {
-          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+          osc.type = 'sine'; 
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime);
           gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-          osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+          osc.start(); 
+          osc.stop(audioCtx.currentTime + 0.2);
+        } else {
+          osc.type = 'sawtooth'; 
+          osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          osc.start(); 
+          osc.stop(audioCtx.currentTime + 0.4);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log("Audio Error:", e);
+      }
     }
 
     function generateNextCode() {
@@ -256,7 +272,6 @@
     async function startCamera() {
       const video = document.getElementById('scannerVideo');
       try {
-        // BACK CAMERA / REAR CAMERA SETTING
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } }, audio: false });
         video.srcObject = stream;
       } catch (err) {
@@ -272,7 +287,7 @@
           }
         }
       }
-      setInterval(autoScanLoop, 250);
+      setInterval(autoScanLoop, 300);
     }
 
     function getImageFingerprint(imgSource) {
@@ -296,7 +311,7 @@
                    Math.abs(fp1[i].g - fp2[i].g) + 
                    Math.abs(fp1[i].b - fp2[i].b);
       }
-      return totalDiff / fp1.length;
+      return (totalDiff / fp1.length) / 255;
     }
 
     function isAlreadyScannedToday(memberCode) {
@@ -317,10 +332,10 @@
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
         
-        if (diff < 18) {
+        if (diff < 0.22) {
           scanCooldown = true;
           triggerScanOverlay(m);
-          setTimeout(() => { scanCooldown = false; }, 2500);
+          setTimeout(() => { scanCooldown = false; }, 3000);
           break;
         }
       }
@@ -346,6 +361,7 @@
 
     function renderAttendanceLog() {
       const tbody = document.getElementById('attendanceLogBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       attendanceLogs.forEach(log => {
         const row = document.createElement('tr');
