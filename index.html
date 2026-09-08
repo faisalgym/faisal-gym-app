@@ -4,15 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Faisal Gym Management</title>
+  <!-- Reliable Face-API Library -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
   <style>
     :root {
-      --bg-color: #0d0f12;
-      --card-bg: #161b22;
-      --accent-color: #ff9800;
+      --bg-color: #0b1320;
+      --card-bg: #131e30;
+      --accent-color: #ff2a4b;
+      --accent-hover: #d61f3c;
       --text-color: #f0f6fc;
       --green-color: #00e676;
-      --red-color: #ff1744;
-      --border-color: #30363d;
+      --red-color: #ff2a4b;
+      --border-color: #21324e;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -26,9 +29,9 @@
     }
     .brand { display: flex; align-items: center; gap: 10px; }
     .brand img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-color); }
-    .brand h1 { font-size: 1.1rem; color: var(--accent-color); }
+    .brand h1 { font-size: 1.1rem; color: var(--accent-color); letter-spacing: 1px; }
     .digital-clock {
-      font-size: 0.95rem; font-weight: bold; background: #000;
+      font-size: 0.95rem; font-weight: bold; background: #050911;
       padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent-color); color: var(--accent-color);
     }
 
@@ -37,30 +40,42 @@
     @media (min-width: 768px) { .container { grid-template-columns: 1fr 1fr; } }
 
     .card { background: var(--card-bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); }
-    .card-title { font-size: 1rem; color: var(--accent-color); margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-weight: bold; }
+    .card-title { font-size: 1rem; color: var(--accent-color); margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
 
     /* Scanner View */
     .scanner-box {
-      position: relative; width: 100%; height: 230px; background: #000;
+      position: relative; width: 100%; height: 240px; background: #050911;
       border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border-color);
     }
-    video { width: 100%; height: 100%; object-fit: cover; }
-    .scan-overlay {
-      position: absolute; top: 10px; left: 10px; right: 10px; padding: 10px;
-      border-radius: 6px; text-align: center; font-weight: bold; display: none; z-index: 10;
+    video, canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+    
+    .scan-status-tag {
+      position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7);
+      padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; color: #8fa0bc; z-index: 5;
     }
-    .scan-overlay.green { display: block; background: rgba(0, 230, 118, 0.9); color: #000; border: 2px solid var(--green-color); }
-    .scan-overlay.red { display: block; background: rgba(255, 23, 68, 0.9); color: #fff; border: 2px solid var(--red-color); }
 
-    /* Inputs & Buttons */
+    .scan-overlay {
+      position: absolute; top: 15px; left: 15px; right: 15px; padding: 15px;
+      border-radius: 8px; text-align: center; font-weight: bold; display: none; z-index: 10;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .scan-overlay.green { display: block; background: rgba(0, 230, 118, 0.95); color: #000; border: 2px solid var(--green-color); }
+    .scan-overlay.red { display: block; background: rgba(255, 42, 75, 0.95); color: #fff; border: 2px solid var(--red-color); }
+
+    /* Form Fields Layout */
+    .form-group { margin-top: 8px; }
+    .form-group label { font-size: 0.75rem; color: #8fa0bc; display: block; margin-bottom: 3px; }
+    
     input, button {
-      width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px;
-      border: 1px solid var(--border-color); background: #0d0f12; color: #fff; font-size: 0.9rem;
+      width: 100%; padding: 10px; border-radius: 6px;
+      border: 1px solid var(--border-color); background: #050911; color: #fff; font-size: 0.9rem;
     }
     input:focus { outline: none; border-color: var(--accent-color); }
-    input[readonly] { background: #161b22; color: var(--accent-color); font-weight: bold; }
-    button { background: var(--accent-color); color: #000; font-weight: bold; cursor: pointer; border: none; }
+    input[readonly] { background: #1a273d; color: var(--accent-color); font-weight: bold; }
+    button { background: var(--accent-color); color: #fff; font-weight: bold; cursor: pointer; border: none; margin-top: 8px; transition: 0.2s; }
+    button:hover { background: var(--accent-hover); }
     .btn-danger { background: var(--red-color); color: #fff; }
+    .btn-secondary { background: #1a273d; color: #fff; border: 1px solid var(--border-color); }
     
     .btn-whatsapp { 
       background: #25D366; color: #fff; display: inline-flex; align-items: center; justify-content: center;
@@ -69,18 +84,18 @@
     .btn-whatsapp svg { width: 16px; height: 16px; fill: currentColor; }
 
     .capture-area { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
-    .photo-preview { width: 55px; height: 55px; border-radius: 6px; background: #000; border: 1px solid var(--border-color); object-fit: cover; }
+    .photo-preview { width: 55px; height: 55px; border-radius: 6px; background: #050911; border: 1px solid var(--border-color); object-fit: cover; }
 
     /* Member List Cards */
     .member-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; margin-top: 10px; }
     .member-card {
-      display: flex; align-items: center; gap: 12px; background: #0d0f12;
+      display: flex; align-items: center; gap: 12px; background: #050911;
       padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
     }
     .member-card img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent-color); }
     .member-info { flex: 1; }
     .member-info h4 { font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 6px; }
-    .member-info p { font-size: 0.78rem; color: #8b949e; margin-top: 2px; }
+    .member-info p { font-size: 0.78rem; color: #8fa0bc; margin-top: 2px; }
 
     .badge { display: inline-block; padding: 2px 6px; font-size: 0.75rem; border-radius: 4px; font-weight: bold; }
     .badge-green { background: var(--green-color); color: #000; }
@@ -103,17 +118,18 @@
 
   <div class="container">
     
-    <!-- Module 1: Live Scanner -->
+    <!-- Module 1: Live Back Camera Auto Face Scanner -->
     <div class="card">
-      <div class="card-title">Live Back-Camera Scanner</div>
-      <div class="scanner-box">
+      <div class="card-title">Auto Face Scanner (Back Camera)</div>
+      <div class="scanner-box" id="scannerContainer">
+        <div class="scan-status-tag" id="aiStatus">AI Loading...</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
         <div id="scanOverlay" class="scan-overlay">
-          <div id="scanName" style="font-size:1.1rem;">Member Name</div>
-          <small id="scanStatus">STATUS</small>
+          <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
+          <div id="scanStatus" style="font-size:0.95rem; margin-top:4px;">STATUS</div>
         </div>
       </div>
-      <button onclick="simulateScan()" style="margin-top: 8px; background:#21262d; color:#fff; border:1px solid var(--border-color);">🔍 Scan Detection Test</button>
+      <button onclick="manualScanSearch()" class="btn-secondary">🔍 Code Search / Manual Check</button>
     </div>
 
     <!-- Module 2: Member Form -->
@@ -122,27 +138,35 @@
       <form id="memberForm" onsubmit="saveMember(event)">
         <input type="hidden" id="editIndex" value="-1">
         
-        <div style="display:flex; gap:8px;">
+        <div class="form-group">
+          <label>Member Code</label>
           <input type="text" id="mCode" readonly placeholder="Auto Code">
-          <input type="text" id="mName" placeholder="Pura Naam" required style="flex:2;">
+        </div>
+
+        <div class="form-group">
+          <label>Pura Naam</label>
+          <input type="text" id="mName" placeholder="Pura Naam Likhein" required>
         </div>
         
-        <input type="tel" id="mPhone" placeholder="WhatsApp Mobile Number" required>
+        <div class="form-group">
+          <label>WhatsApp Mobile Number</label>
+          <input type="tel" id="mPhone" placeholder="03001234567" required>
+        </div>
         
         <div style="display: flex; gap: 8px;">
-          <div style="flex:1;">
-            <small style="color:#8b949e; font-size:0.75rem;">Admission Date</small>
+          <div class="form-group" style="flex:1;">
+            <label>Admission Date</label>
             <input type="date" id="mAdminDate" required onchange="setAutoExpiry()">
           </div>
-          <div style="flex:1;">
-            <small style="color:#8b949e; font-size:0.75rem;">Expiry Date (+1 Month)</small>
+          <div class="form-group" style="flex:1;">
+            <label>Expiry Date (+1 Month)</label>
             <input type="date" id="mExpDate" required>
           </div>
         </div>
 
         <div class="capture-area">
-          <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='55' height='55' fill='%2330363d'><rect width='100%' height='100%'/></svg>" alt="Preview">
-          <button type="button" onclick="capturePhoto()">📸 Tasveer Khainchein</button>
+          <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='55' height='55' fill='%2321324e'><rect width='100%' height='100%'/></svg>" alt="Preview">
+          <button type="button" onclick="capturePhoto()" class="btn-secondary">📸 Tasveer Khainchein</button>
         </div>
 
         <button type="submit" id="saveBtn" style="margin-top: 12px;">Save Profile Entry</button>
@@ -151,28 +175,73 @@
 
   </div>
 
-  <!-- Module 3: Dynamic Member Profiles & Search -->
+  <!-- Module 3: Saved Profiles & Data Backup -->
   <div class="card" style="margin-top: 15px;">
-    <div class="card-title">Saved Member Profiles</div>
-    <input type="text" id="searchInput" placeholder="Search Profile by Name or Code (e.g. A-1)..." onkeyup="renderMembers()">
+    <div class="card-title">
+      <span>Saved Member Profiles</span>
+      <button onclick="exportData()" class="btn-secondary" style="padding: 4px 8px; font-size:0.75rem; width:auto; margin:0;">📥 Backup Data</button>
+    </div>
+    
+    <input type="text" id="searchInput" placeholder="Search Profile by Name or Code (e.g. A-1)..." onkeyup="renderMembers()" style="margin-top:5px;">
     
     <div class="member-list" id="memberList">
-      <!-- Member Cards Will Save Here -->
+      <!-- Member Cards Render Here -->
     </div>
   </div>
 
   <script>
     let members = JSON.parse(localStorage.getItem('gym_members')) || [];
     let capturedImageData = '';
+    let labeledDescriptors = [];
+    let audioCtx = null;
 
-    // Digital Clock
+    // Clock
     function updateClock() {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Auto Code Generation (A-1 to G-100 with Gap Recycle)
+    // Sound Synthesizer (Beep Sounds for Fee Paid / Due)
+    function playSound(type) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'paid') {
+          // Success High Pitch Double Beep (Green)
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.15);
+          
+          setTimeout(() => {
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(1760, audioCtx.currentTime);
+            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc2.start();
+            osc2.stop(audioCtx.currentTime + 0.2);
+          }, 150);
+        } else {
+          // Warning Low Pitch Buzz Beep (Red)
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.4);
+        }
+      } catch (e) { console.log('Audio play error', e); }
+    }
+
+    // Auto Code Generation
     function generateNextCode() {
       const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
       const assignedCodes = new Set(members.map(m => m.code));
@@ -186,32 +255,107 @@
       return 'FULL';
     }
 
-    // Camera Init
-    async function startCamera() {
+    // Back Camera & Face Detection Initialization
+    async function startCameraAndFaceDetection() {
       const video = document.getElementById('scannerVideo');
+      const aiStatus = document.getElementById('aiStatus');
+
+      // 1. Force Back/Rear Camera (facingMode: environment)
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: "environment" } },
+          audio: false
+        });
         video.srcObject = stream;
       } catch (err) {
         try {
-          const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
+          const fallback = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
           video.srcObject = fallback;
-        } catch (e) { console.log('Camera Permission Needed'); }
+        } catch (e) {
+          const defaultCam = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = defaultCam;
+        }
       }
+
+      // 2. Load Face API AI Models
+      try {
+        aiStatus.innerText = 'Loading Models...';
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark64Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        
+        aiStatus.innerText = 'Auto Face Scanner Active 🟢';
+        aiStatus.style.color = '#00e676';
+        
+        // Start Automatic Background Scanning Loop
+        startAutoScanning();
+      } catch (err) {
+        aiStatus.innerText = 'Scanner Ready (Manual Mode)';
+      }
+    }
+
+    // Fully Automatic Background Face Scanning Loop
+    function startAutoScanning() {
+      const video = document.getElementById('scannerVideo');
+      let scanCooldown = false;
+
+      setInterval(async () => {
+        if (scanCooldown || members.length === 0 || video.paused || video.ended) return;
+
+        try {
+          const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                                          .withFaceLandmarks()
+                                          .withFaceDescriptor();
+
+          if (detection && labeledDescriptors.length > 0) {
+            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+            const match = faceMatcher.findBestMatch(detection.descriptor);
+
+            if (match.label !== 'unknown') {
+              scanCooldown = true;
+              const matchedMember = members.find(m => m.code === match.label);
+              if (matchedMember) {
+                triggerScanOverlay(matchedMember);
+              }
+              // Cooldown period (4 seconds) to avoid repeating sound/overlay immediately
+              setTimeout(() => { scanCooldown = false; }, 4000);
+            }
+          }
+        } catch (e) {}
+      }, 700); // Scans every 0.7 seconds automatically
+    }
+
+    // Trigger Overlay Status & Sound Play
+    function triggerScanOverlay(member) {
+      const today = new Date().toISOString().split('T')[0];
+      const isPaid = member.expDate >= today;
+      const overlay = document.getElementById('scanOverlay');
+      
+      document.getElementById('scanName').innerText = `${member.name} (${member.code})`;
+      overlay.className = `scan-overlay ${isPaid ? 'green' : 'red'}`;
+      document.getElementById('scanStatus').innerText = isPaid ? 'FEE PAID - ACCESS GRANTED' : 'FEE DUE - OVERDUE';
+
+      // Play Sound Automatically
+      playSound(isPaid ? 'paid' : 'due');
+
+      setTimeout(() => { overlay.className = 'scan-overlay'; }, 3500);
     }
 
     // Photo Capture
     function capturePhoto() {
       const video = document.getElementById('scannerVideo');
+      if (!video.srcObject) return alert('Camera enable hona zaroori hai.');
+      
       const canvas = document.createElement('canvas');
-      canvas.width = 180; canvas.height = 180;
+      canvas.width = 220; canvas.height = 220;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, 180, 180);
+      ctx.drawImage(video, 0, 0, 220, 220);
       capturedImageData = canvas.toDataURL('image/png');
       document.getElementById('photoPreview').src = capturedImageData;
     }
 
-    // Auto Expiry Logic (+1 Month)
+    // Auto Expiry Logic
     function setAutoExpiry() {
       const adminVal = document.getElementById('mAdminDate').value;
       if (!adminVal) return;
@@ -220,7 +364,7 @@
       document.getElementById('mExpDate').value = d.toISOString().split('T')[0];
     }
 
-    // Form Reset & Defaults
+    // Form Reset
     function resetForm() {
       document.getElementById('memberForm').reset();
       document.getElementById('editIndex').value = -1;
@@ -228,13 +372,13 @@
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('mAdminDate').value = today;
       setAutoExpiry();
-      document.getElementById('photoPreview').src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2330363d"><rect width="100%" height="100%"/></svg>';
+      document.getElementById('photoPreview').src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2321324e"><rect width="100%" height="100%"/></svg>';
       capturedImageData = '';
       document.getElementById('saveBtn').innerText = 'Save Profile Entry';
     }
 
     // Save or Update Member
-    function saveMember(e) {
+    async function saveMember(e) {
       e.preventDefault();
       const editIndex = parseInt(document.getElementById('editIndex').value);
       const code = document.getElementById('mCode').value;
@@ -242,7 +386,7 @@
       const phone = document.getElementById('mPhone').value.trim();
       const adminDate = document.getElementById('mAdminDate').value;
       const expDate = document.getElementById('mExpDate').value;
-      const photo = capturedImageData || (editIndex !== -1 ? members[editIndex].photo : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2330363d"><rect width="100%" height="100%"/></svg>');
+      const photo = capturedImageData || (editIndex !== -1 ? members[editIndex].photo : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2321324e"><rect width="100%" height="100%"/></svg>');
 
       if (editIndex === -1) {
         members.push({ code, name, phone, adminDate, expDate, photo });
@@ -253,9 +397,26 @@
       localStorage.setItem('gym_members', JSON.stringify(members));
       resetForm();
       renderMembers();
+      await updateFaceDescriptors();
     }
 
-    // Edit Member Profile
+    // Update Face Recognition Data from Photos
+    async function updateFaceDescriptors() {
+      labeledDescriptors = [];
+      for (let m of members) {
+        if (m.photo && m.photo.startsWith('data:image')) {
+          try {
+            const img = await faceapi.fetchImage(m.photo);
+            const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+            if (detection) {
+              labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(m.code, [detection.descriptor]));
+            }
+          } catch(e) {}
+        }
+      }
+    }
+
+    // Edit Member
     function editMember(index) {
       const m = members[index];
       document.getElementById('editIndex').value = index;
@@ -270,17 +431,25 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Delete Member Profile
+    // Delete Member
     function deleteMember(index) {
       if (confirm(`Are you sure you want to delete profile ${members[index].code}?`)) {
         members.splice(index, 1);
         localStorage.setItem('gym_members', JSON.stringify(members));
         resetForm();
         renderMembers();
+        updateFaceDescriptors();
       }
     }
 
-    // Render Saved Profile Cards
+    // Format Phone Number
+    function formatPhone(phone) {
+      let clean = phone.replace(/\D/g, '');
+      if (clean.startsWith('0')) clean = '92' + clean.substring(1);
+      return clean;
+    }
+
+    // Render Saved Profiles
     function renderMembers() {
       const query = document.getElementById('searchInput').value.toLowerCase().trim();
       const list = document.getElementById('memberList');
@@ -290,9 +459,7 @@
       members.forEach((m, index) => {
         if (m.name.toLowerCase().includes(query) || m.code.toLowerCase().includes(query)) {
           const isPaid = m.expDate >= today;
-          let cleanPhone = m.phone.replace(/[^0-9]/g, '');
-          if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
-          
+          const cleanPhone = formatPhone(m.phone);
           const waMsg = encodeURIComponent(`Dear ${m.name} (${m.code}), ${isPaid ? 'Aap ki gym fee received ho chuki hai. Shukriya!' : 'Aap ki gym fee due hai. Barae meharbani fee jama karwadein.'}`);
           const waUrl = `https://wa.me/${cleanPhone}?text=${waMsg}`;
 
@@ -319,26 +486,36 @@
       });
     }
 
-    // Scanner Sound & Visual Simulation
-    function simulateScan() {
+    // Manual Code Search
+    function manualScanSearch() {
       if (members.length === 0) return alert('Pehle kam se kam ek member register karein.');
-      const m = members[Math.floor(Math.random() * members.length)];
-      const today = new Date().toISOString().split('T')[0];
-      const isPaid = m.expDate >= today;
+      const inputCode = prompt("Enter Member Code (e.g., A-1):");
+      if (!inputCode) return;
 
-      const overlay = document.getElementById('scanOverlay');
-      document.getElementById('scanName').innerText = `${m.name} (${m.code})`;
-      
-      overlay.className = `scan-overlay ${isPaid ? 'green' : 'red'}`;
-      document.getElementById('scanStatus').innerText = isPaid ? 'FEE PAID - ACCESS GRANTED' : 'FEE DUE - OVERDUE';
+      const m = members.find(item => item.code.toLowerCase() === inputCode.trim().toLowerCase());
+      if (!m) return alert('Member nahi mila!');
+      triggerScanOverlay(m);
+    }
 
-      setTimeout(() => { overlay.className = 'scan-overlay'; }, 3000);
+    // Backup Data
+    function exportData() {
+      if (members.length === 0) return alert('Backup ke liye koi data nahi hai.');
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(members, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `faisal_gym_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
 
     // Startup
-    startCamera();
-    resetForm();
-    renderMembers();
+    window.addEventListener('DOMContentLoaded', () => {
+      startCameraAndFaceDetection();
+      resetForm();
+      renderMembers();
+      setTimeout(updateFaceDescriptors, 2500);
+    });
   </script>
 </body>
 </html>
