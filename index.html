@@ -291,6 +291,12 @@
       return Math.abs(fp1.r - fp2.r) + Math.abs(fp1.g - fp2.g) + Math.abs(fp1.b - fp2.b);
     }
 
+    // Checking if member already scanned TODAY
+    function isAlreadyScannedToday(memberCode) {
+      const todayDate = new Date().toISOString().split('T')[0];
+      return attendanceLogs.some(log => log.code === memberCode && log.dateOnly === todayDate);
+    }
+
     function autoScanLoop() {
       if (scanCooldown || members.length === 0) return;
       const video = document.getElementById('scannerVideo');
@@ -300,6 +306,10 @@
 
       for (let m of members) {
         if (!m.fingerprint) continue;
+        
+        // Skip if member already scanned today
+        if (isAlreadyScannedToday(m.code)) continue;
+
         let diff = compareFingerprints(currentFP, m.fingerprint);
         if (diff < 20) {
           scanCooldown = true;
@@ -317,12 +327,13 @@
       
       attendanceLogs.unshift({
         time: `${dateStr} ${timeStr}`,
+        dateOnly: dateStr,
         code: member.code,
         name: member.name,
         status: isPaid ? 'PAID' : 'DUE'
       });
 
-      if (attendanceLogs.length > 50) attendanceLogs.pop(); // Keep last 50 entries
+      if (attendanceLogs.length > 100) attendanceLogs.pop(); // Keeps recent 100 logs
       localStorage.setItem('gym_attendance', JSON.stringify(attendanceLogs));
       renderAttendanceLog();
     }
