@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Faisal Gym Management</title>
+  <title>Faisal Gym Management - Face Scanner</title>
   <style>
     :root {
       --bg-color: #0b1320;
@@ -39,7 +39,7 @@
     .card-title { font-size: 1rem; color: var(--accent-color); margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
 
     .scanner-box {
-      position: relative; width: 100%; height: 240px; background: #050911;
+      position: relative; width: 100%; height: 260px; background: #050911;
       border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border-color);
     }
     video { position: absolute; width: 100%; height: 100%; object-fit: cover; }
@@ -47,6 +47,12 @@
     .scan-status-tag {
       position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7);
       padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; color: #00e676; z-index: 5; font-weight: bold;
+    }
+
+    .face-guide {
+      position: absolute; width: 150px; height: 180px;
+      border: 2px dashed rgba(0, 230, 118, 0.5); border-radius: 50%;
+      pointer-events: none; z-index: 2;
     }
 
     .scan-overlay {
@@ -115,10 +121,11 @@
 
   <div class="container">
     <div class="card">
-      <div class="card-title">Live Camera Auto Scanner</div>
+      <div class="card-title">Live Face Auto Scanner 👤</div>
       <div class="scanner-box" id="scannerContainer">
-        <div class="scan-status-tag" id="aiStatus">FAST AUTO-SCANNING 🟢</div>
+        <div class="scan-status-tag">AUTO FACE SCANNING 🟢</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
+        <div class="face-guide"></div>
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
           <div id="scanStatus" style="font-size:0.95rem; margin-top:4px;">STATUS</div>
@@ -160,7 +167,7 @@
 
         <div class="capture-area">
           <img id="photoPreview" class="photo-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='55' height='55' fill='%2321324e'><rect width='100%' height='100%'/></svg>" alt="Preview">
-          <button type="button" onclick="capturePhoto()" class="btn-secondary">📸 Tasveer Khainchein</button>
+          <button type="button" onclick="capturePhoto()" class="btn-secondary">📸 Face Capture Karain</button>
         </div>
 
         <button type="submit" id="saveBtn" style="margin-top: 12px;">Save Profile Entry</button>
@@ -200,7 +207,7 @@
     <div class="member-list" id="memberList"></div>
   </div>
 
-  <canvas id="hiddenCanvas" style="display:none;" width="64" height="64"></canvas>
+  <canvas id="hiddenCanvas" style="display:none;" width="32" height="32"></canvas>
 
   <script>
     let members = JSON.parse(localStorage.getItem('gym_members')) || [];
@@ -226,13 +233,6 @@
           osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
           gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
           osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-          setTimeout(() => {
-            const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
-            osc2.connect(gain2); gain2.connect(audioCtx.destination);
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(1760, audioCtx.currentTime);
-            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc2.start(); osc2.stop(audioCtx.currentTime + 0.2);
-          }, 150);
         } else {
           osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
           gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
@@ -256,34 +256,28 @@
     async function startCamera() {
       const video = document.getElementById('scannerVideo');
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: "environment" } }, audio: false
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         video.srcObject = stream;
       } catch (err) {
         try {
-          const fallback = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          const fallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           video.srcObject = fallback;
-        } catch (e) {
-          const defaultCam = await navigator.mediaDevices.getUserMedia({ video: true });
-          video.srcObject = defaultCam;
+        } catch(e) {
+          alert("Camera enable nahi ho saka.");
         }
       }
-      setInterval(autoScanLoop, 300);
+      setInterval(autoScanLoop, 250);
     }
 
     function getImageFingerprint(imgSource) {
       const canvas = document.getElementById('hiddenCanvas');
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(imgSource, 0, 0, 64, 64);
-      const data = ctx.getImageData(0, 0, 64, 64).data;
+      ctx.drawImage(imgSource, 0, 0, 32, 32);
+      const data = ctx.getImageData(0, 0, 32, 32).data;
       
       let grid = [];
-      for (let y = 0; y < 64; y += 16) {
-        for (let x = 0; x < 64; x += 16) {
-          let idx = (y * 64 + x) * 4;
-          grid.push({ r: data[idx], g: data[idx+1], b: data[idx+2] });
-        }
+      for (let i = 0; i < data.length; i += 16) {
+        grid.push({ r: data[i], g: data[i+1], b: data[i+2] });
       }
       return grid;
     }
@@ -317,11 +311,11 @@
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
         
-        // Threshold restored to 12 for fast auto-detection
-        if (diff < 12) {
+        // Fast & Balanced Auto Face Sensitivity Threshold
+        if (diff < 18) {
           scanCooldown = true;
           triggerScanOverlay(m);
-          setTimeout(() => { scanCooldown = false; }, 3000);
+          setTimeout(() => { scanCooldown = false; }, 2500);
           break;
         }
       }
@@ -361,7 +355,7 @@
     }
 
     function clearAttendanceLog() {
-      if (confirm("Daily attendance history clear kar dein?")) {
+      if (confirm("Attendance history clear kar dein?")) {
         attendanceLogs = [];
         localStorage.removeItem('gym_attendance');
         renderAttendanceLog();
@@ -380,7 +374,7 @@
       playSound(isPaid ? 'paid' : 'due');
       logAttendance(member, isPaid);
 
-      setTimeout(() => { overlay.className = 'scan-overlay'; }, 2500);
+      setTimeout(() => { overlay.className = 'scan-overlay'; }, 2200);
     }
 
     function capturePhoto() {
@@ -427,7 +421,7 @@
       
       let photo = capturedImageData;
       if (!photo && editIdx !== -1) photo = members[editIdx].photo;
-      if (!photo) photo = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="55" height="55" fill="%2321324e"><rect width="100%" height="100%"/></svg>';
+      if (!photo) return alert('Pehle member ki tasveer/face capture karein!');
 
       const tempImg = new Image();
       tempImg.src = photo;
@@ -444,7 +438,7 @@
         localStorage.setItem('gym_members', JSON.stringify(members));
         resetForm();
         renderMembers();
-        alert(editIdx === -1 ? 'Member Add Ho Gaya!' : 'Profile Update Ho Gayi!');
+        alert(editIdx === -1 ? 'Member Profile Saved Successfully!' : 'Profile Updated Successfully!');
       };
     }
 
