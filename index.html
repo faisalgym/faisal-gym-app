@@ -117,7 +117,7 @@
     <div class="card">
       <div class="card-title">Live Camera Auto Scanner</div>
       <div class="scanner-box" id="scannerContainer">
-        <div class="scan-status-tag" id="aiStatus">BALANCED SCANNING 🟢</div>
+        <div class="scan-status-tag" id="aiStatus">FAST AUTO-SCANNING 🟢</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
@@ -269,7 +269,7 @@
           video.srcObject = defaultCam;
         }
       }
-      setInterval(autoScanLoop, 500);
+      setInterval(autoScanLoop, 300);
     }
 
     function getImageFingerprint(imgSource) {
@@ -317,12 +317,11 @@
 
         let diff = compareFingerprints(currentFP, m.fingerprint);
         
-        // Balanced Threshold: 16 (prevents unwanted false scans)
-        if (diff < 16) {
+        // Threshold restored to 12 for fast auto-detection
+        if (diff < 12) {
           scanCooldown = true;
           triggerScanOverlay(m);
-          // 6 Seconds delay before accepting another scan
-          setTimeout(() => { scanCooldown = false; }, 6000);
+          setTimeout(() => { scanCooldown = false; }, 3000);
           break;
         }
       }
@@ -371,7 +370,7 @@
 
     function triggerScanOverlay(member) {
       const today = new Date().toISOString().split('T')[0];
-      const isPaid = mExpDate >= today;
+      const isPaid = member.expDate >= today;
       const overlay = document.getElementById('scanOverlay');
       
       document.getElementById('scanName').innerText = `${member.name} (${member.code})`;
@@ -381,7 +380,7 @@
       playSound(isPaid ? 'paid' : 'due');
       logAttendance(member, isPaid);
 
-      setTimeout(() => { overlay.className = 'scan-overlay'; }, 3000);
+      setTimeout(() => { overlay.className = 'scan-overlay'; }, 2500);
     }
 
     function capturePhoto() {
