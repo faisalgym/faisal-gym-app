@@ -96,6 +96,12 @@
 
     .action-btns { display: flex; gap: 4px; }
     .action-btns button, .action-btns a { margin-top: 0; width: auto; padding: 6px 10px; font-size: 0.8rem; }
+
+    /* Attendance Log Styling */
+    .attendance-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.82rem; }
+    .attendance-table th, .attendance-table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .attendance-table th { background: #050911; color: var(--accent-color); }
+    .log-box { max-height: 200px; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -110,9 +116,9 @@
 
   <div class="container">
     <div class="card">
-      <div class="card-title">Auto Face Scanner (Active)</div>
+      <div class="card-title">Live Camera Auto Scanner</div>
       <div class="scanner-box" id="scannerContainer">
-        <div class="scan-status-tag" id="aiStatus">AUTO SCAN ACTIVE 🟢</div>
+        <div class="scan-status-tag" id="aiStatus">LIVE SCANNING 🟢</div>
         <video id="scannerVideo" autoplay playsinline muted></video>
         <div id="scanOverlay" class="scan-overlay">
           <div id="scanName" style="font-size:1.2rem; text-transform: uppercase;">Member Name</div>
@@ -164,6 +170,27 @@
     </div>
   </div>
 
+  <!-- Attendance History Section -->
+  <div class="card" style="margin-top: 15px;">
+    <div class="card-title">
+      <span>Daily Attendance History Log 📋</span>
+      <button onclick="clearAttendanceLog()" class="btn-secondary" style="padding: 4px 8px; font-size:0.75rem; width:auto; margin:0;">🗑️ Clear Log</button>
+    </div>
+    <div class="log-box">
+      <table class="attendance-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="attendanceLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="card" style="margin-top: 15px;">
     <div class="card-title">
       <span>Saved Member Profiles</span>
@@ -179,6 +206,7 @@
 
   <script>
     let members = JSON.parse(localStorage.getItem('gym_members')) || [];
+    let attendanceLogs = JSON.parse(localStorage.getItem('gym_attendance')) || [];
     let capturedImageData = '';
     let audioCtx = null;
     let scanCooldown = false;
@@ -273,12 +301,52 @@
       for (let m of members) {
         if (!m.fingerprint) continue;
         let diff = compareFingerprints(currentFP, m.fingerprint);
-        if (diff < 18) {
+        if (diff < 20) {
           scanCooldown = true;
           triggerScanOverlay(m);
           setTimeout(() => { scanCooldown = false; }, 3500);
           break;
         }
+      }
+    }
+
+    function logAttendance(member, isPaid) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toISOString().split('T')[0];
+      
+      attendanceLogs.unshift({
+        time: `${dateStr} ${timeStr}`,
+        code: member.code,
+        name: member.name,
+        status: isPaid ? 'PAID' : 'DUE'
+      });
+
+      if (attendanceLogs.length > 50) attendanceLogs.pop(); // Keep last 50 entries
+      localStorage.setItem('gym_attendance', JSON.stringify(attendanceLogs));
+      renderAttendanceLog();
+    }
+
+    function renderAttendanceLog() {
+      const tbody = document.getElementById('attendanceLogBody');
+      tbody.innerHTML = '';
+      attendanceLogs.forEach(log => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${log.time}</td>
+          <td><b>${log.code}</b></td>
+          <td>${log.name}</td>
+          <td><span class="badge ${log.status === 'PAID' ? 'badge-green' : 'badge-red'}">${log.status}</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function clearAttendanceLog() {
+      if (confirm("Daily attendance history clear kar dein?")) {
+        attendanceLogs = [];
+        localStorage.removeItem('gym_attendance');
+        renderAttendanceLog();
       }
     }
 
@@ -292,6 +360,8 @@
       document.getElementById('scanStatus').innerText = isPaid ? 'FEE PAID - ACCESS GRANTED' : 'FEE DUE - OVERDUE';
 
       playSound(isPaid ? 'paid' : 'due');
+      logAttendance(member, isPaid);
+
       setTimeout(() => { overlay.className = 'scan-overlay'; }, 3000);
     }
 
@@ -453,6 +523,7 @@
       startCamera();
       resetForm();
       renderMembers();
+      renderAttendanceLog();
     });
   </script>
 </body>
