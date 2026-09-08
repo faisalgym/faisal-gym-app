@@ -224,7 +224,7 @@
     let lastUnknownFrame = '';
     let audioCtx = null;
     let scanCooldown = false;
-    let unknownCounter = 0;
+    let lastUnknownScanTime = 0;
 
     function updateClock() {
       document.getElementById('clock').innerText = new Date().toLocaleTimeString();
@@ -263,10 +263,10 @@
           osc.stop(audioCtx.currentTime + 0.4);
         } else if (type === 'unknown') {
           osc.type = 'square';
-          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
           osc.start();
-          osc.stop(audioCtx.currentTime + 0.5);
+          osc.stop(audioCtx.currentTime + 0.3);
         }
       } catch (e) {
         console.log("Audio Error:", e);
@@ -303,7 +303,7 @@
           }
         }
       }
-      setInterval(autoScanLoop, 350);
+      setInterval(autoScanLoop, 400);
     }
 
     function getImageFingerprint(imgSource) {
@@ -354,23 +354,31 @@
         }
       }
 
-      // Member Matched
-      if (foundMember && minDiff < 0.22) {
+      // 1. Registered Member Match Case
+      if (foundMember && minDiff < 0.20) {
         if (!isAlreadyScannedToday(foundMember.code)) {
           scanCooldown = true;
           triggerScanOverlay(foundMember);
-          setTimeout(() => { scanCooldown = false; }, 3000);
+          setTimeout(() => { scanCooldown = false; }, 4000);
         }
-        unknownCounter = 0;
-      } else {
-        // Unknown Person Detection logic
-        unknownCounter++;
-        if (unknownCounter > 6) { // Continual motion/unregistered face presence
+        return;
+      }
+
+      // 2. Unknown Face Alarm Rule (10 sec cooldown to stop constant sound)
+      const currentTime = Date.now();
+      if (currentTime - lastUnknownScanTime > 10000) {
+        // Calculate frame variance to avoid triggering on plain wall/background
+        let avgDiffFromBlank = 0;
+        for(let p of currentFP) {
+          avgDiffFromBlank += Math.abs(p.r - p.g) + Math.abs(p.g - p.b);
+        }
+        
+        if (avgDiffFromBlank > 300) { // Ensures a person/face is actually in frame
+          lastUnknownScanTime = currentTime;
           scanCooldown = true;
           captureUnknownFrame();
           triggerUnknownOverlay();
-          unknownCounter = 0;
-          setTimeout(() => { scanCooldown = false; }, 4000);
+          setTimeout(() => { scanCooldown = false; }, 3500);
         }
       }
     }
@@ -397,7 +405,7 @@
       setTimeout(() => { 
         overlay.className = 'scan-overlay'; 
         document.getElementById('quickRegBox').style.display = 'none';
-      }, 3500);
+      }, 3000);
     }
 
     function quickRegisterUnknown() {
@@ -463,7 +471,7 @@
       playSound(isPaid ? 'paid' : 'due');
       logAttendance(member, isPaid);
 
-      setTimeout(() => { overlay.className = 'scan-overlay'; }, 2200);
+      setTimeout(() => { overlay.className = 'scan-overlay'; }, 2500);
     }
 
     function capturePhoto() {
